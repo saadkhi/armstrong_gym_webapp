@@ -7,7 +7,8 @@ import type { ReminderLog } from '../../src/types';
 // Cron is secured by a shared secret, not JWT
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req as any, res as any)) return;
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  // Vercel Cron sends GET; also accept POST for manual triggers
+  if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
     await ensureDb();

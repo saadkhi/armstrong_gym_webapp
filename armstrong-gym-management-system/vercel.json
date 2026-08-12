@@ -5,7 +5,19 @@
   "framework": null,
   "installCommand": "npm install",
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/api/auth/login",                    "destination": "/api/auth" },
+    { "source": "/api/auth/me",                       "destination": "/api/auth" },
+    { "source": "/api/members/:id",                   "destination": "/api/members" },
+    { "source": "/api/payments/submit-bill",          "destination": "/api/payments" },
+    { "source": "/api/payments/verify/:id",           "destination": "/api/payments" },
+    { "source": "/api/payments/:id",                  "destination": "/api/payments" },
+    { "source": "/api/attendance/check-in",           "destination": "/api/attendance" },
+    { "source": "/api/trainers/:id",                  "destination": "/api/trainers" },
+    { "source": "/api/expenses/:id",                  "destination": "/api/expenses" },
+    { "source": "/api/whatsapp/send",                 "destination": "/api/whatsapp" },
+    { "source": "/api/whatsapp/logs",                 "destination": "/api/whatsapp" },
+    { "source": "/api/whatsapp/batch-send-unpaid",    "destination": "/api/whatsapp" },
+    { "source": "/((?!api/).*)",                      "destination": "/index.html" }
   ],
   "crons": [
     {
