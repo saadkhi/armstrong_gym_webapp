@@ -28,6 +28,7 @@ import {
 import toast from 'react-hot-toast';
 import { Logo } from './Logo';
 import { submitMemberBill } from '../api/client';
+import gymBg from '../../assets/gym-bg.jpeg';
 
 interface PortfolioProps {
   onGoToAdmin: () => void;
@@ -333,16 +334,18 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
   );
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white font-sans selection:bg-[#E51924] selection:text-white relative overflow-x-hidden">
-      {/* High impact background picture layer with dark red vignette */}
-      <div 
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-15 filter contrast-125 saturate-50 pointer-events-none -z-20 scale-105"
+    <div className="min-h-screen bg-transparent text-white font-sans selection:bg-[#E51924] selection:text-white relative overflow-x-hidden">
+      {/* Landing page background image */}
+      <div
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-85 filter contrast-110 saturate-110 pointer-events-none -z-20"
         style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=2000&q=80')`
+          backgroundImage: `url(${gymBg})`,
         }}
       />
-      <div className="fixed inset-0 bg-gradient-to-b from-[#0A0A0A]/90 via-[#0A0A0A]/95 to-[#0A0A0A] pointer-events-none -z-10" />
-      <div className="fixed inset-0 glow-bg pointer-events-none -z-10" />
+      <div className="fixed inset-0 bg-black/70 pointer-events-none -z-10" />
+      <div className="fixed inset-0 pointer-events-none -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08),transparent_18%),radial-gradient(circle_at_80%_30%,rgba(255,255,255,0.05),transparent_15%),linear-gradient(180deg,rgba(10,10,10,0.2),rgba(10,10,10,0.8))] opacity-70" />
+      </div>
 
       {/* Top Floating Navigation Bar */}
       <nav className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-white/10 px-6 py-3.5">

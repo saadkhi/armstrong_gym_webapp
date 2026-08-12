@@ -224,7 +224,7 @@ export default function App() {
 
   // Render Full Admin Dashboard
   return (
-    <div className="flex h-screen bg-[#0A0A0A] text-white font-sans overflow-hidden selection:bg-[#E51924] selection:text-white">
+    <div className="flex h-screen bg-transparent text-white font-sans overflow-hidden selection:bg-[#E51924] selection:text-white">
       <Toaster position="top-right" />
 
       {/* Left Sidebar */}
