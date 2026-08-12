@@ -2,7 +2,8 @@
 server.ts
 
 # Local data files — DB is Neon, not JSON
-data/
+/data/
+data/gym.json
 
 # Local env file — use Vercel dashboard env vars instead
 .env
