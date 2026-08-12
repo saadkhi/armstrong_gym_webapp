@@ -8,29 +8,17 @@ import {
 } from './_lib/db';
 import type { Member, Payment } from '../src/types';
 
-/**
- * Consolidated members handler.
- * Routes:
- *   GET    /api/members            → list all
- *   POST   /api/members            → create
- *   GET    /api/members/:id        → get one
- *   PUT    /api/members/:id        → update
- *   DELETE /api/members/:id        → delete
- */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req as any, res as any)) return;
 
   const payload = authenticateRequest(req as any);
   if (!payload) return res.status(401).json({ error: 'Unauthorized' });
 
-  // Extract id from URL path: /api/members/GM-001 → "GM-001"
-  const url = (req.url || '').split('?')[0];
-  const parts = url.replace(/^\/api\/members\/?/, '').split('/').filter(Boolean);
-  const id = parts[0] || (req.query.id as string) || '';
+  // _id injected by vercel.json rewrite for /api/members/:id
+  const id = (req.query._id as string) || '';
 
-  // ── Collection routes (no id) ────────────────────────────────────────────────
+  // ── Collection routes (no id) ─────────────────────────────────────────────────
   if (!id) {
-    // GET /api/members
     if (req.method === 'GET') {
       try {
         const members = await getMembers();
@@ -47,7 +35,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // POST /api/members
     if (req.method === 'POST') {
       try {
         const body = await readBody<Partial<Member> & { amountPaid?: number }>(req as any);
@@ -120,9 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // ── Single-resource routes (with id) ─────────────────────────────────────────
-
-  // GET /api/members/:id
+  // ── Single-resource routes (/api/members/:id) ─────────────────────────────────
   if (req.method === 'GET') {
     try {
       const member = await getMemberById(id);
@@ -134,22 +119,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // PUT /api/members/:id
   if (req.method === 'PUT') {
     try {
       const current = await getMemberById(id);
       if (!current) return res.status(404).json({ error: 'Member not found' });
-
       const body = await readBody(req as any);
       const merged = { ...current, ...body };
-
       if (body.planType || body.startDate) {
         merged.planDurationMonths = planDuration(merged.planType);
         merged.expiryDate = calcExpiry(merged.startDate, merged.planDurationMonths);
       }
       merged.remainingBalance = Math.max(0, Number(merged.planCost) - Number(merged.amountPaid));
       merged.status = calcMemberStatus(merged.expiryDate);
-
       const updated = await updateMemberRecord(id, merged);
       return res.status(200).json(updated);
     } catch (err: any) {
@@ -158,7 +139,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // DELETE /api/members/:id
   if (req.method === 'DELETE') {
     try {
       const member = await getMemberById(id);

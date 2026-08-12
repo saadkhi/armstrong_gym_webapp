@@ -5,27 +5,17 @@ import { readBody, todayStr } from './_lib/helpers';
 import { getTrainers, insertTrainer, nextTrainerId, getMembers, updateTrainerRecord, deleteTrainerRecord } from './_lib/db';
 import type { Trainer } from '../src/types';
 
-/**
- * Consolidated trainers handler.
- * Routes:
- *   GET    /api/trainers        → list all
- *   POST   /api/trainers        → create
- *   PUT    /api/trainers/:id    → update
- *   DELETE /api/trainers/:id    → delete
- */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req as any, res as any)) return;
 
   const payload = authenticateRequest(req as any);
   if (!payload) return res.status(401).json({ error: 'Unauthorized' });
 
-  const url = (req.url || '').split('?')[0];
-  const parts = url.replace(/^\/api\/trainers\/?/, '').split('/').filter(Boolean);
-  const id = parts[0] || (req.query.id as string) || '';
+  // _id injected by vercel.json rewrite
+  const id = (req.query._id as string) || '';
 
   // ── Collection routes ─────────────────────────────────────────────────────────
   if (!id) {
-    // GET /api/trainers
     if (req.method === 'GET') {
       try {
         const [trainers, members] = await Promise.all([getTrainers(), getMembers()]);
@@ -40,12 +30,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // POST /api/trainers
     if (req.method === 'POST') {
       try {
         const { name, phone, email, specialty, salary, shift, status, joiningDate }
           = await readBody(req as any);
-
         if (!name) return res.status(400).json({ error: 'name is required' });
 
         const newId = await nextTrainerId();
@@ -73,9 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // ── Single-resource routes ────────────────────────────────────────────────────
-
-  // PUT /api/trainers/:id
+  // ── Single-resource routes ─────────────────────────────────────────────────────
   if (req.method === 'PUT') {
     try {
       const body = await readBody(req as any);
@@ -88,7 +74,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // DELETE /api/trainers/:id
   if (req.method === 'DELETE') {
     try {
       await deleteTrainerRecord(id);

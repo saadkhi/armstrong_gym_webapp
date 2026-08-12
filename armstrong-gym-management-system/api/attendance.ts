@@ -5,20 +5,15 @@ import { readBody, todayStr } from './_lib/helpers';
 import { getAttendance, getMembers, getTodayCheckIn, insertAttendance, nextAttendanceId } from './_lib/db';
 import type { Attendance } from '../src/types';
 
-/**
- * Consolidated attendance handler.
- * Routes:
- *   GET  /api/attendance            → list all attendance records
- *   POST /api/attendance/check-in   → check in a member
- */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req as any, res as any)) return;
 
   const payload = authenticateRequest(req as any);
   if (!payload) return res.status(401).json({ error: 'Unauthorized' });
 
-  const url = (req.url || '').split('?')[0];
-  const isCheckIn = url.includes('/check-in');
+  // _route injected by vercel.json rewrite
+  const route = (req.query._route as string) || '';
+  const isCheckIn = route === 'check-in';
 
   // GET /api/attendance
   if (!isCheckIn && req.method === 'GET') {

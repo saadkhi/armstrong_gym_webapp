@@ -8,10 +8,14 @@ import { ensureDb, getAdminByEmail, getAdminById } from './_lib/db';
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req as any, res as any)) return;
 
+  // _route is injected by vercel.json rewrite query params
+  const route = (req.query._route as string) || '';
   const url = req.url || '';
+  const isLogin = route === 'login' || url.includes('/login');
+  const isMe = route === 'me' || url.includes('/me');
 
   // POST /api/auth/login
-  if (url.includes('/login') && req.method === 'POST') {
+  if (isLogin && req.method === 'POST') {
     try {
       await ensureDb();
       const { email, password } = await readBody<{ email: string; password: string }>(req as any);
@@ -39,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // GET /api/auth/me
-  if (url.includes('/me') && req.method === 'GET') {
+  if (isMe && req.method === 'GET') {
     const payload = authenticateRequest(req as any);
     if (!payload) return res.status(401).json({ success: false, error: 'Unauthorized' });
     try {

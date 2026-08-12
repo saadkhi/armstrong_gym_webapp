@@ -5,26 +5,17 @@ import { readBody, todayStr } from './_lib/helpers';
 import { getExpenses, insertExpense, nextExpenseId, deleteExpenseRecord } from './_lib/db';
 import type { Expense } from '../src/types';
 
-/**
- * Consolidated expenses handler.
- * Routes:
- *   GET    /api/expenses        → list all
- *   POST   /api/expenses        → create
- *   DELETE /api/expenses/:id    → delete
- */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req as any, res as any)) return;
 
   const payload = authenticateRequest(req as any);
   if (!payload) return res.status(401).json({ error: 'Unauthorized' });
 
-  const url = (req.url || '').split('?')[0];
-  const parts = url.replace(/^\/api\/expenses\/?/, '').split('/').filter(Boolean);
-  const id = parts[0] || (req.query.id as string) || '';
+  // _id injected by vercel.json rewrite
+  const id = (req.query._id as string) || '';
 
   // ── Collection routes ─────────────────────────────────────────────────────────
   if (!id) {
-    // GET /api/expenses
     if (req.method === 'GET') {
       try {
         return res.status(200).json(await getExpenses());
@@ -34,7 +25,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // POST /api/expenses
     if (req.method === 'POST') {
       try {
         const { title, amount, category, date, notes } = await readBody(req as any);
@@ -61,9 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // ── Single-resource routes ────────────────────────────────────────────────────
-
-  // DELETE /api/expenses/:id
+  // ── Single-resource routes ─────────────────────────────────────────────────────
   if (req.method === 'DELETE') {
     try {
       await deleteExpenseRecord(id);

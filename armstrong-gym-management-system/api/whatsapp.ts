@@ -1,27 +1,21 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { applyCors } from './_lib/cors';
 import { authenticateRequest } from './_lib/auth';
-import { readBody, nowTimestamp, calcMemberStatus } from './_lib/helpers';
+import { readBody, nowTimestamp } from './_lib/helpers';
 import { getMemberById, getMembers, getReminderLogs, insertReminderLog, nextLogId } from './_lib/db';
 import type { ReminderLog } from '../src/types';
 
-/**
- * Consolidated whatsapp handler.
- * Routes:
- *   POST /api/whatsapp/send                → send single WhatsApp message
- *   GET  /api/whatsapp/logs                → fetch reminder logs
- *   POST /api/whatsapp/batch-send-unpaid   → batch send to all unpaid members
- */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req as any, res as any)) return;
 
   const payload = authenticateRequest(req as any);
   if (!payload) return res.status(401).json({ error: 'Unauthorized' });
 
-  const url = (req.url || '').split('?')[0];
+  // _route injected by vercel.json rewrite
+  const route = (req.query._route as string) || '';
 
-  // ── GET /api/whatsapp/logs ────────────────────────────────────────────────────
-  if (url.includes('/logs') && req.method === 'GET') {
+  // GET /api/whatsapp/logs
+  if (route === 'logs' && req.method === 'GET') {
     try {
       return res.status(200).json(await getReminderLogs());
     } catch (err: any) {
@@ -30,8 +24,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // ── POST /api/whatsapp/send ───────────────────────────────────────────────────
-  if (url.includes('/send') && req.method === 'POST') {
+  // POST /api/whatsapp/send
+  if (route === 'send' && req.method === 'POST') {
     try {
       const { memberId, type, customMessage } = await readBody(req as any);
 
@@ -77,8 +71,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // ── POST /api/whatsapp/batch-send-unpaid ─────────────────────────────────────
-  if (url.includes('/batch-send-unpaid') && req.method === 'POST') {
+  // POST /api/whatsapp/batch-send-unpaid
+  if (route === 'batch-send-unpaid' && req.method === 'POST') {
     try {
       const { targetMemberIds, customTemplate } = await readBody(req as any);
 
