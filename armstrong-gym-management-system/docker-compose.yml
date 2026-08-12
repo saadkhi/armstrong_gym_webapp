@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: armstrong-gym-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: armstrong
+      POSTGRES_PASSWORD: armstrong
+      POSTGRES_DB: armstrong_gym
+    volumes:
+      - armstrong_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U armstrong -d armstrong_gym"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  armstrong_pg_data:

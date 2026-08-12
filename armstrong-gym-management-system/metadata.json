@@ -1,0 +1,6 @@
+{
+  "name": "Armstrong Gym Management System",
+  "description": "Production-ready Gym Management System with Admin Dashboard, QR Attendance, Payments, Members, Trainers, Expenses, PDF/CSV Reports, WhatsApp Reminders, and Public Portfolio.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

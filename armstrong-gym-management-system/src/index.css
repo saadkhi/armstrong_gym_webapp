@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #0A0A0A;
+    color: #ffffff;
+    word-spacing: 0.12em;
+  }
+}
+
+/* ── Shared glass card — matches website ────────────────────────────── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+}
+.glass-card-hover {
+  transition: all 0.2s ease-in-out;
+}
+.glass-card-hover:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(229, 25, 36, 0.35);
+}
+
+/* ── Glow backgrounds ───────────────────────────────────────────────── */
+.glow-bg {
+  background: radial-gradient(circle at 50% 30%, rgba(229, 25, 36, 0.10) 0%, transparent 70%);
+}
+.glow-bg-bottom {
+  background: radial-gradient(circle at 80% 80%, rgba(229, 25, 36, 0.07) 0%, transparent 60%);
+}
+
+/* ── Accent colours — single source of truth ────────────────────────── */
+.accent-text  { color: #E51924; }
+.accent-bg    { background-color: #E51924; }
+
+/* ── Stat numbers ───────────────────────────────────────────────────── */
+.stat-val {
+  font-family: 'Inter', sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+/* ── Admin panel surface colours (replaces slate-* everywhere) ───────── */
+.admin-surface       { background-color: #111111; }
+.admin-surface-alt   { background-color: #0D0D0D; }
+.admin-border        { border-color: rgba(255,255,255,0.08); }
+.admin-border-accent { border-color: rgba(229, 25, 36, 0.35); }

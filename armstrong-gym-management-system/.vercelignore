@@ -1,0 +1,13 @@
+# Dev server — not needed on Vercel
+server.ts
+
+# Local data files — DB is Neon, not JSON
+data/
+
+# Local env file — use Vercel dashboard env vars instead
+.env
+
+# Dev tooling
+.kiro/
+*.log
+node_modules/.cache/
