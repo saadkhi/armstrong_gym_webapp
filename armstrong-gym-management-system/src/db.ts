@@ -190,17 +190,21 @@ export async function createTables(): Promise<void> {
 export async function seedDbIfNeeded(): Promise<void> {
   const bcrypt = await import('bcryptjs');
 
-  // Seed admin
-  const adminRows = await query('SELECT id FROM admin_users LIMIT 1');
-  if (adminRows.length === 0) {
-    const rawPassword = process.env.ADMIN_PASSWORD || 'admin123';
-    const hash = await bcrypt.hash(rawPassword, 12);
-    await execute(
-      `INSERT INTO admin_users (id, name, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (email) DO NOTHING`,
-      [initialAdmin.id, initialAdmin.name, process.env.ADMIN_EMAIL || initialAdmin.email, hash, initialAdmin.role]
-    );
-  }
+  // Always ensure the configured admin account exists with the correct password.
+  // Uses UPSERT so:
+  //   - First deploy: creates the admin row.
+  //   - Subsequent deploys: updates email + password if env vars changed.
+  const adminEmail = (process.env.ADMIN_EMAIL || initialAdmin.email).trim().toLowerCase();
+  const rawPassword = process.env.ADMIN_PASSWORD || 'admin123';
+  const hash = await bcrypt.hash(rawPassword, 12);
+  await execute(
+    `INSERT INTO admin_users (id, name, email, password_hash, role)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (email) DO UPDATE
+       SET password_hash = EXCLUDED.password_hash,
+           name          = EXCLUDED.name`,
+    [initialAdmin.id, initialAdmin.name, adminEmail, hash, initialAdmin.role]
+  );
 
   // Seed settings
   const settingsRows = await query('SELECT id FROM settings LIMIT 1');
