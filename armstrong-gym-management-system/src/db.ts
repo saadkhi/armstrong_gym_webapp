@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { Pool, types } from 'pg';
 import {
   initialAdmin,
