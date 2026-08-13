@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { applyCors } from './lib/cors';
-import { authenticateRequest } from './lib/auth';
-import { readBody } from './lib/helpers';
-import { getSettings, updateSettings } from './lib/db';
+import { applyCors } from '../src/apilib/cors';
+import { authenticateRequest } from '../src/apilib/auth';
+import { readBody } from '../src/apilib/helpers';
+import { getSettings, updateSettings } from '../src/apilib/db';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req as any, res as any)) return;

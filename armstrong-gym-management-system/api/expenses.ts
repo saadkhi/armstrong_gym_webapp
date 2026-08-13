@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { applyCors } from './lib/cors';
-import { authenticateRequest } from './lib/auth';
-import { readBody, todayStr } from './lib/helpers';
-import { getExpenses, insertExpense, nextExpenseId, deleteExpenseRecord } from './lib/db';
+import { applyCors } from '../src/apilib/cors';
+import { authenticateRequest } from '../src/apilib/auth';
+import { readBody, todayStr } from '../src/apilib/helpers';
+import { getExpenses, insertExpense, nextExpenseId, deleteExpenseRecord } from '../src/apilib/db';
 import type { Expense } from '../src/types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

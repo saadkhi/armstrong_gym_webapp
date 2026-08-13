@@ -47,4 +47,4 @@ export {
   // admin
   getAdminByEmail,
   getAdminById,
-} from '../../src/db';
+} from '../db';

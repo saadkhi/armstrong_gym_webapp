@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { applyCors } from '../lib/cors';
-import { nowTimestamp, calcMemberStatus } from '../lib/helpers';
-import { ensureDb, getMembers, updateMemberRecord, getSettings, insertReminderLog, nextLogId } from '../lib/db';
+import { applyCors } from '../../src/apilib/cors';
+import { nowTimestamp, calcMemberStatus } from '../../src/apilib/helpers';
+import { ensureDb, getMembers, updateMemberRecord, getSettings, insertReminderLog, nextLogId } from '../../src/apilib/db';
 import type { ReminderLog } from '../../src/types';
 
 // Cron is secured by a shared secret, not JWT

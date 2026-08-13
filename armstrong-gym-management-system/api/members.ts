@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { applyCors } from './lib/cors';
-import { authenticateRequest } from './lib/auth';
-import { readBody, calcMemberStatus, calcExpiry, planDuration, nowTimestamp, todayStr } from './lib/helpers';
+import { applyCors } from '../src/apilib/cors';
+import { authenticateRequest } from '../src/apilib/auth';
+import { readBody, calcMemberStatus, calcExpiry, planDuration, nowTimestamp, todayStr } from '../src/apilib/helpers';
 import {
   getMembers, getMemberById, insertMember, updateMemberRecord, deleteMemberRecord,
   nextMemberId, insertPayment, nextPaymentId,
-} from './lib/db';
+} from '../src/apilib/db';
 import type { Member, Payment } from '../src/types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
