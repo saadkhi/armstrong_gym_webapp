@@ -17,6 +17,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // POST /api/auth/login
   if (isLogin && req.method === 'POST') {
     try {
+      // Diagnostic: catch missing env vars early with a clear message
+      if (!process.env.NEON_DATABASE_URL && !process.env.DATABASE_URL) {
+        return res.status(500).json({ success: false, error: 'Server misconfiguration: NEON_DATABASE_URL is not set' });
+      }
+      if (!process.env.JWT_SECRET) {
+        return res.status(500).json({ success: false, error: 'Server misconfiguration: JWT_SECRET is not set' });
+      }
       await ensureDb();
       const { email, password } = await readBody<{ email: string; password: string }>(req as any);
       if (!email || !password) {

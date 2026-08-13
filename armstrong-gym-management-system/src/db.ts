@@ -14,26 +14,42 @@ import { AdminUser, Member, Payment, Attendance, Trainer, Expense, ReminderLog }
 // Parse NUMERIC columns as float, not string
 types.setTypeParser(1700, parseFloat);
 
-const connectionString = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+// Lazy pool — created on first use so a missing env var produces a
+// proper JSON 500 from the handler instead of a module-level crash.
+let _pool: Pool | null = null;
 
-if (!connectionString) {
-  throw new Error('NEON_DATABASE_URL environment variable is not set');
+export function getPool(): Pool {
+  if (_pool) return _pool;
+
+  const connectionString = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error('NEON_DATABASE_URL environment variable is not set');
+  }
+
+  const isLocalDb =
+    /localhost|127\.0\.0\.1/.test(connectionString) &&
+    !connectionString.includes('sslmode=require');
+
+  _pool = new Pool({
+    connectionString,
+    ...(isLocalDb ? {} : { ssl: { rejectUnauthorized: false } }),
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  });
+
+  return _pool;
 }
 
-const isLocalDb =
-  /localhost|127\.0\.0\.1/.test(connectionString) &&
-  !connectionString.includes('sslmode=require');
-
-export const pool = new Pool({
-  connectionString,
-  ...(isLocalDb ? {} : { ssl: { rejectUnauthorized: false } }),
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
+// Keep a `pool` export for any code that references it directly
+export const pool = new Proxy({} as Pool, {
+  get(_target, prop) {
+    return (getPool() as any)[prop];
+  },
 });
 
 async function query<T = any>(sql: string, params: any[] = []): Promise<T[]> {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     const result = await client.query<T>(sql, params);
     return result.rows;
