@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { applyCors } from './_lib/cors';
-import { authenticateRequest } from './_lib/auth';
-import { readBody, todayStr } from './_lib/helpers';
-import { getAttendance, getMembers, getTodayCheckIn, insertAttendance, nextAttendanceId } from './_lib/db';
+import { applyCors } from './lib/cors';
+import { authenticateRequest } from './lib/auth';
+import { readBody, todayStr } from './lib/helpers';
+import { getAttendance, getMembers, getTodayCheckIn, insertAttendance, nextAttendanceId } from './lib/db';
 import type { Attendance } from '../src/types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

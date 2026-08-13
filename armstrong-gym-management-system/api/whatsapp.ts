@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { applyCors } from './_lib/cors';
-import { authenticateRequest } from './_lib/auth';
-import { readBody, nowTimestamp } from './_lib/helpers';
-import { getMemberById, getMembers, getReminderLogs, insertReminderLog, nextLogId } from './_lib/db';
+import { applyCors } from './lib/cors';
+import { authenticateRequest } from './lib/auth';
+import { readBody, nowTimestamp } from './lib/helpers';
+import { getMemberById, getMembers, getReminderLogs, insertReminderLog, nextLogId } from './lib/db';
 import type { ReminderLog } from '../src/types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

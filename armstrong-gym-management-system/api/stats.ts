@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { applyCors } from './_lib/cors';
-import { authenticateRequest } from './_lib/auth';
-import { todayStr, calcMemberStatus } from './_lib/helpers';
-import { getMembers, getPayments, getExpenses } from './_lib/db';
+import { applyCors } from './lib/cors';
+import { authenticateRequest } from './lib/auth';
+import { todayStr, calcMemberStatus } from './lib/helpers';
+import { getMembers, getPayments, getExpenses } from './lib/db';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req as any, res as any)) return;

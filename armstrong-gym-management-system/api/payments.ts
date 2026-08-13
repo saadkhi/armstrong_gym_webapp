@@ -1,13 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { applyCors } from './_lib/cors';
-import { authenticateRequest } from './_lib/auth';
-import { readBody, nowTimestamp } from './_lib/helpers';
+import { applyCors } from './lib/cors';
+import { authenticateRequest } from './lib/auth';
+import { readBody, nowTimestamp } from './lib/helpers';
 import {
   getPayments, insertPayment, nextPaymentId,
   getPaymentById, deletePaymentRecord, updatePaymentRecord,
   getMemberById, updateMemberRecord,
   getMembers, insertReminderLog, nextLogId,
-} from './_lib/db';
+} from './lib/db';
 import type { Payment, ReminderLog } from '../src/types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

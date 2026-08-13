@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import bcrypt from 'bcryptjs';
-import { applyCors } from './_lib/cors';
-import { authenticateRequest, signToken } from './_lib/auth';
-import { readBody } from './_lib/helpers';
-import { ensureDb, getAdminByEmail, getAdminById } from './_lib/db';
+import { applyCors } from './lib/cors';
+import { authenticateRequest, signToken } from './lib/auth';
+import { readBody } from './lib/helpers';
+import { ensureDb, getAdminByEmail, getAdminById } from './lib/db';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req as any, res as any)) return;
