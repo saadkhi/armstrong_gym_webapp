@@ -64,6 +64,12 @@ export interface Trainer {
   joiningDate: string;
   assignedMembersCount?: number;
   photoUrl?: string;
+  // Public profile fields shown on website
+  role?: string;          // e.g. "Head Bodybuilding & Strength Coach"
+  experience?: string;    // e.g. "12+ Years Experience"
+  clientsCount?: string;  // e.g. "180+ Clients Transformed"
+  shiftTiming?: string;   // e.g. "Morning Shift: 6 AM - 12 PM"
+  bio?: string;
 }
 
 export type ExpenseCategory =

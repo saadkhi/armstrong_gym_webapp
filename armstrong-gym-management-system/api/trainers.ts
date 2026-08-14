@@ -34,7 +34,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!id) {
     if (req.method === 'POST') {
       try {
-        const { name, phone, email, specialty, salary, shift, status, joiningDate }
+        const { name, phone, email, specialty, salary, shift, status, joiningDate,
+                photoUrl, role, experience, clientsCount, shiftTiming, bio }
           = await readBody(req as any);
         if (!name) return res.status(400).json({ error: 'name is required' });
 
@@ -50,6 +51,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           status: status || 'Active',
           joiningDate: joiningDate || todayStr(),
           assignedMembersCount: 0,
+          photoUrl: photoUrl || '',
+          role: role || '',
+          experience: experience || '',
+          clientsCount: clientsCount || '',
+          shiftTiming: shiftTiming || '',
+          bio: bio || '',
         };
 
         await insertTrainer(newTrainer);

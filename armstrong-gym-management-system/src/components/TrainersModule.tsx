@@ -43,6 +43,11 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
   const [formSalary, setFormSalary] = useState(35000);
   const [formShift, setFormShift] = useState<'Morning' | 'Evening' | 'Full Day'>('Morning');
   const [formPhotoUrl, setFormPhotoUrl] = useState('');
+  const [formRole, setFormRole] = useState('');
+  const [formExperience, setFormExperience] = useState('');
+  const [formClientsCount, setFormClientsCount] = useState('');
+  const [formShiftTiming, setFormShiftTiming] = useState('');
+  const [formBio, setFormBio] = useState('');
 
   // Two separate hidden inputs so capture attribute is static per button
   const photoGalleryRef = useRef<HTMLInputElement>(null);
@@ -77,6 +82,11 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
           salary: Number(formSalary),
           shift: formShift,
           photoUrl: formPhotoUrl,
+          role: formRole,
+          experience: formExperience,
+          clientsCount: formClientsCount,
+          shiftTiming: formShiftTiming,
+          bio: formBio,
         });
         toast.success(`Trainer ${editingTrainer.id} updated!`);
       } else {
@@ -90,6 +100,11 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
           status: 'Active',
           joiningDate: new Date().toISOString().split('T')[0],
           photoUrl: formPhotoUrl,
+          role: formRole,
+          experience: formExperience,
+          clientsCount: formClientsCount,
+          shiftTiming: formShiftTiming,
+          bio: formBio,
         });
         toast.success('New Coach registered!');
       }
@@ -109,6 +124,11 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
     setFormSalary(t.salary);
     setFormShift(t.shift);
     setFormPhotoUrl(t.photoUrl || '');
+    setFormRole(t.role || '');
+    setFormExperience(t.experience || '');
+    setFormClientsCount(t.clientsCount || '');
+    setFormShiftTiming(t.shiftTiming || '');
+    setFormBio(t.bio || '');
     setShowAddModal(true);
   };
 
@@ -120,6 +140,11 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
     setFormEmail('');
     setFormSpecialty('');
     setFormPhotoUrl('');
+    setFormRole('');
+    setFormExperience('');
+    setFormClientsCount('');
+    setFormShiftTiming('');
+    setFormBio('');
   };
 
   return (
@@ -228,8 +253,8 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
 
       {/* Add / Edit Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0D0D0D] border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-6 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#0D0D0D] border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-6 shadow-2xl relative my-8">
             <button
               onClick={closeModal}
               className="absolute top-5 right-5 text-white/50 hover:text-white"
@@ -300,6 +325,72 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
                   value={formSpecialty}
                   onChange={(e) => setFormSpecialty(e.target.value)}
                   className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-white/80 mb-1">
+                  Role / Title <span className="text-white/30 font-normal">(shown on website)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Head Bodybuilding & Strength Coach"
+                  value={formRole}
+                  onChange={(e) => setFormRole(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-white/80 mb-1">
+                    Experience <span className="text-white/30 font-normal">(website badge)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 10+ Years Experience"
+                    value={formExperience}
+                    onChange={(e) => setFormExperience(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-white/80 mb-1">
+                    Clients Count <span className="text-white/30 font-normal">(website badge)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 150+ Clients Transformed"
+                    value={formClientsCount}
+                    onChange={(e) => setFormClientsCount(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-white/80 mb-1">
+                  Shift Timing <span className="text-white/30 font-normal">(website display)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Morning Shift: 6 AM - 12 PM"
+                  value={formShiftTiming}
+                  onChange={(e) => setFormShiftTiming(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-white/80 mb-1">
+                  Bio <span className="text-white/30 font-normal">(shown on website profile)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Short coach bio for the public website..."
+                  value={formBio}
+                  onChange={(e) => setFormBio(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924] resize-none"
                 />
               </div>
 

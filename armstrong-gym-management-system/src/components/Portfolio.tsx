@@ -281,34 +281,28 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
     },
   };
 
-  // Build the trainers list from live backend data (if loaded), merged with static meta
+  // Build the trainers list from live backend data (if loaded), merged with static meta.
+  // Live trainer fields (role, experience, clientsCount, shiftTiming, bio) take priority;
+  // static meta fills in for known coaches so they don't go blank if those fields were
+  // set before the new fields existed.
   const trainers = (liveTrainers.length > 0 ? liveTrainers : Object.keys(trainerMeta).map((key) => ({
     id: key, name: key.charAt(0).toUpperCase() + key.slice(1),
     phone: '', email: '', specialty: '', salary: 0,
     shift: 'Morning' as const, status: 'Active' as const, joiningDate: '',
   }))).map((t) => {
     const key = t.name.toLowerCase();
-    const meta = trainerMeta[key] ?? {
-      role: t.specialty || 'Fitness Coach',
-      specialty: t.specialty || '',
-      experience: '',
-      certifications: [] as string[],
-      shift: `${t.shift} Shift`,
-      transformationsCount: '',
-      image: t.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.name)}&background=1a1a1a&color=E51924&size=300`,
-      bio: t.specialty || '',
-    };
+    const meta = trainerMeta[key];
     return {
       id: t.id,
       name: t.name,
-      role: meta.role,
-      specialty: meta.specialty || t.specialty,
-      experience: meta.experience,
-      certifications: meta.certifications,
-      shift: meta.shift,
-      transformationsCount: meta.transformationsCount,
-      image: t.photoUrl || meta.image,
-      bio: meta.bio,
+      role: t.role || meta?.role || t.specialty || 'Fitness Coach',
+      specialty: t.specialty || meta?.specialty || '',
+      experience: t.experience || meta?.experience || '',
+      certifications: meta?.certifications ?? [],
+      shift: t.shiftTiming || meta?.shift || (t.shift ? `${t.shift} Shift` : ''),
+      transformationsCount: t.clientsCount || meta?.transformationsCount || '',
+      image: t.photoUrl || meta?.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.name)}&background=1a1a1a&color=E51924&size=300`,
+      bio: t.bio || meta?.bio || t.specialty || '',
     };
   });
 
