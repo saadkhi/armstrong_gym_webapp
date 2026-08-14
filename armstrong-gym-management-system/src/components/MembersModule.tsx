@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Users,
   UserPlus,
@@ -18,6 +18,9 @@ import {
   X,
   Printer,
   Sparkles,
+  Camera,
+  Upload,
+  UserCircle2,
 } from 'lucide-react';
 import { Member, MembershipPlanType } from '../types';
 import toast from 'react-hot-toast';
@@ -57,6 +60,23 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
   );
   const [formNotes, setFormNotes] = useState('');
+
+  // Photo file input ref
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  // Convert selected file to base64 data URI
+  const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string;
+      if (result) setFormPhotoUrl(result);
+    };
+    reader.readAsDataURL(file);
+    // Reset so the same file can be re-selected
+    e.target.value = '';
+  };
 
   // Auto set plan cost when planType changes
   const handlePlanTypeChange = (plan: MembershipPlanType) => {
@@ -454,15 +474,81 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-white/80 mb-1">
-                  Photo Image URL
+                  Member Photo
                 </label>
+                {/* Hidden file input — accepts images from gallery or camera */}
                 <input
-                  type="url"
-                  placeholder="https://..."
-                  value={formPhotoUrl}
-                  onChange={(e) => setFormPhotoUrl(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handlePhotoFileChange}
                 />
+                <div className="flex items-center gap-4">
+                  {/* Preview */}
+                  <div
+                    onClick={() => photoInputRef.current?.click()}
+                    className="relative w-20 h-20 rounded-2xl overflow-hidden border-2 border-dashed border-white/20 hover:border-[#E51924]/60 cursor-pointer flex-shrink-0 transition-all group bg-white/5"
+                    title="Click to upload or take photo"
+                  >
+                    {formPhotoUrl ? (
+                      <img
+                        src={formPhotoUrl}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <UserCircle2 className="w-10 h-10 text-white/20 group-hover:text-[#E51924]/50 transition-colors" />
+                      </div>
+                    )}
+                    {/* Overlay on hover */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Camera className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex-1 flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (photoInputRef.current) {
+                          photoInputRef.current.removeAttribute('capture');
+                          photoInputRef.current.click();
+                        }
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#E51924]/40 text-white/70 hover:text-white text-xs font-semibold transition-all"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      Upload from Gallery
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (photoInputRef.current) {
+                          photoInputRef.current.setAttribute('capture', 'environment');
+                          photoInputRef.current.click();
+                        }
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#E51924]/40 text-white/70 hover:text-white text-xs font-semibold transition-all"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      Take a Photo
+                    </button>
+                    {formPhotoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setFormPhotoUrl('')}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl bg-white/3 hover:bg-red-500/10 border border-white/8 hover:border-red-500/30 text-white/40 hover:text-red-400 text-xs font-semibold transition-all"
+                      >
+                        <X className="w-3 h-3" />
+                        Remove Photo
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
