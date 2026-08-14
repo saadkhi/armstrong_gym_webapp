@@ -25,6 +25,7 @@ import {
 import { Member, MembershipPlanType } from '../types';
 import toast from 'react-hot-toast';
 import logoImg from '../assets/images/logo.jpg';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface MembersModuleProps {
   members: Member[];
@@ -46,6 +47,7 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCardModal, setShowCardModal] = useState<Member | null>(null);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<Member | null>(null);
 
   // Form states
   const [formName, setFormName] = useState('');
@@ -61,8 +63,9 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
   );
   const [formNotes, setFormNotes] = useState('');
 
-  // Photo file input ref
-  const photoInputRef = useRef<HTMLInputElement>(null);
+  // Photo file input refs — separate inputs so capture attribute is static
+  const photoInputRef = useRef<HTMLInputElement>(null);       // gallery
+  const photoCameraRef = useRef<HTMLInputElement>(null);      // camera
 
   // Convert selected file to base64 data URI
   const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -323,12 +326,7 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
                           <Edit className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={async () => {
-                            if (confirm(`Are you sure you want to delete ${m.name} (${m.id})?`)) {
-                              await onDeleteMember(m.id);
-                              toast.success('Member removed');
-                            }
-                          }}
+                          onClick={() => setConfirmTarget(m)}
                           title="Delete Member"
                           className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-rose-400 transition-colors"
                         >
@@ -476,9 +474,17 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
                 <label className="block text-xs font-semibold text-white/80 mb-1">
                   Member Photo
                 </label>
-                {/* Hidden file input — accepts images from gallery or camera */}
+                {/* Hidden input: gallery picker (no capture) */}
                 <input
                   ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoFileChange}
+                />
+                {/* Hidden input: camera only (capture="environment") */}
+                <input
+                  ref={photoCameraRef}
                   type="file"
                   accept="image/*"
                   capture="environment"
@@ -513,12 +519,7 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
                   <div className="flex-1 flex flex-col gap-2">
                     <button
                       type="button"
-                      onClick={() => {
-                        if (photoInputRef.current) {
-                          photoInputRef.current.removeAttribute('capture');
-                          photoInputRef.current.click();
-                        }
-                      }}
+                      onClick={() => photoInputRef.current?.click()}
                       className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#E51924]/40 text-white/70 hover:text-white text-xs font-semibold transition-all"
                     >
                       <Upload className="w-3.5 h-3.5" />
@@ -526,12 +527,7 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (photoInputRef.current) {
-                          photoInputRef.current.setAttribute('capture', 'environment');
-                          photoInputRef.current.click();
-                        }
-                      }}
+                      onClick={() => photoCameraRef.current?.click()}
                       className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#E51924]/40 text-white/70 hover:text-white text-xs font-semibold transition-all"
                     >
                       <Camera className="w-3.5 h-3.5" />
@@ -647,6 +643,20 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmTarget}
+        title="Delete Member"
+        message={`Permanently delete ${confirmTarget?.name} (${confirmTarget?.id})? All their records will be removed and this cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={async () => {
+          if (!confirmTarget) return;
+          await onDeleteMember(confirmTarget.id);
+          toast.success(`${confirmTarget.name} removed`);
+          setConfirmTarget(null);
+        }}
+        onCancel={() => setConfirmTarget(null)}
+      />
     </div>
   );
 };

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Expense, ExpenseCategory } from '../types';
 import toast from 'react-hot-toast';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface ExpensesModuleProps {
   expenses: Expense[];
@@ -25,6 +26,7 @@ export const ExpensesModule: React.FC<ExpensesModuleProps> = ({
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [search, setSearch] = useState('');
+  const [confirmTarget, setConfirmTarget] = useState<Expense | null>(null);
 
   // Form states
   const [formTitle, setFormTitle] = useState('');
@@ -155,12 +157,7 @@ export const ExpensesModule: React.FC<ExpensesModuleProps> = ({
 
                     <td className="py-3.5 px-4 text-right">
                       <button
-                        onClick={async () => {
-                          if (confirm(`Delete expense ${e.title}?`)) {
-                            await onDeleteExpense(e.id);
-                            toast.success('Expense record deleted');
-                          }
-                        }}
+                        onClick={() => setConfirmTarget(e)}
                         className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-rose-400 transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -292,6 +289,20 @@ export const ExpensesModule: React.FC<ExpensesModuleProps> = ({
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmTarget}
+        title="Delete Expense"
+        message={`Delete "${confirmTarget?.title}" (Rs. ${confirmTarget?.amount?.toLocaleString('en-PK')})? This record will be permanently removed.`}
+        confirmLabel="Delete"
+        onConfirm={async () => {
+          if (!confirmTarget) return;
+          await onDeleteExpense(confirmTarget.id);
+          toast.success('Expense record deleted');
+          setConfirmTarget(null);
+        }}
+        onCancel={() => setConfirmTarget(null)}
+      />
     </div>
   );
 };

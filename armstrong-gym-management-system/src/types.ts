@@ -63,6 +63,7 @@ export interface Trainer {
   status: 'Active' | 'Inactive';
   joiningDate: string;
   assignedMembersCount?: number;
+  photoUrl?: string;
 }
 
 export type ExpenseCategory =

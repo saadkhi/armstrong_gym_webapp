@@ -24,6 +24,7 @@ import { Payment, Member, PaymentMethod } from '../types';
 import { verifyPayment } from '../api/client';
 import toast from 'react-hot-toast';
 import logoImg from '../assets/images/logo.jpg';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface PaymentsModuleProps {
   payments: Payment[];
@@ -55,6 +56,7 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
   const [showAddModal, setShowAddModal] = useState(!!preselectedMemberId);
   const [selectedReceipt, setSelectedReceipt] = useState<Payment | null>(null);
   const [previewBillUrl, setPreviewBillUrl] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<Payment | null>(null);
   const [isVerifyingId, setIsVerifyingId] = useState<string | null>(null);
 
   // Form states
@@ -462,17 +464,7 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
                           </button>
 
                           <button
-                            onClick={async () => {
-                              if (
-                                confirm(
-                                  `Delete payment ${p.id} of Rs. ${p.amount}? Member balance will be recalculated.`
-                                )
-                              ) {
-                                await onDeletePayment(p.id);
-                                toast.success('Payment deleted & balance recalculated!');
-                                if (onRefreshData) await onRefreshData();
-                              }
-                            }}
+                            onClick={() => setConfirmTarget(p)}
                             className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-rose-400 transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -756,6 +748,21 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmTarget}
+        title="Delete Payment"
+        message={`Delete payment ${confirmTarget?.id} of Rs. ${confirmTarget?.amount?.toLocaleString('en-PK')}? Member balance will be recalculated and this cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={async () => {
+          if (!confirmTarget) return;
+          await onDeletePayment(confirmTarget.id);
+          toast.success('Payment deleted & balance recalculated!');
+          setConfirmTarget(null);
+          if (onRefreshData) await onRefreshData();
+        }}
+        onCancel={() => setConfirmTarget(null)}
+      />
     </div>
   );
 };

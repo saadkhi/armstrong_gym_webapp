@@ -208,6 +208,13 @@ export async function fetchTrainers(): Promise<Trainer[]> {
   return res.json();
 }
 
+/** Public (no auth) — used by the portfolio page */
+export async function fetchPublicTrainers(): Promise<Trainer[]> {
+  const res = await fetch(`${API_BASE}/trainers`);
+  if (!res.ok) throw new Error('Failed to fetch trainers');
+  return res.json();
+}
+
 export async function createTrainer(trainerData: Partial<Trainer>): Promise<Trainer> {
   const res = await apiFetch(`${API_BASE}/trainers`, {
     method: 'POST',

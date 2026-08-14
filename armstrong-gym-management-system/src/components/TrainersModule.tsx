@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Dumbbell,
   UserPlus,
@@ -10,7 +10,11 @@ import {
   X,
   IndianRupee,
   Users,
+  Camera,
+  Upload,
+  UserCircle2,
 } from 'lucide-react';
+import { ConfirmDialog } from './ConfirmDialog';
 import { Trainer } from '../types';
 import toast from 'react-hot-toast';
 
@@ -29,6 +33,7 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingTrainer, setEditingTrainer] = useState<Trainer | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<Trainer | null>(null);
 
   // Form states
   const [formName, setFormName] = useState('');
@@ -37,6 +42,23 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
   const [formSpecialty, setFormSpecialty] = useState('');
   const [formSalary, setFormSalary] = useState(35000);
   const [formShift, setFormShift] = useState<'Morning' | 'Evening' | 'Full Day'>('Morning');
+  const [formPhotoUrl, setFormPhotoUrl] = useState('');
+
+  // Two separate hidden inputs so capture attribute is static per button
+  const photoGalleryRef = useRef<HTMLInputElement>(null);
+  const photoCameraRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string;
+      if (result) setFormPhotoUrl(result);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +76,7 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
           specialty: formSpecialty,
           salary: Number(formSalary),
           shift: formShift,
+          photoUrl: formPhotoUrl,
         });
         toast.success(`Trainer ${editingTrainer.id} updated!`);
       } else {
@@ -66,6 +89,7 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
           shift: formShift,
           status: 'Active',
           joiningDate: new Date().toISOString().split('T')[0],
+          photoUrl: formPhotoUrl,
         });
         toast.success('New Coach registered!');
       }
@@ -84,6 +108,7 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
     setFormSpecialty(t.specialty);
     setFormSalary(t.salary);
     setFormShift(t.shift);
+    setFormPhotoUrl(t.photoUrl || '');
     setShowAddModal(true);
   };
 
@@ -94,6 +119,7 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
     setFormPhone('');
     setFormEmail('');
     setFormSpecialty('');
+    setFormPhotoUrl('');
   };
 
   return (
@@ -128,8 +154,18 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-[#E51924]/20 border border-[#E51924]/30 flex items-center justify-center font-black text-[#E51924] text-base">
-                  {t.name.substring(0, 2).toUpperCase()}
+                <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 border border-white/10">
+                  {t.photoUrl ? (
+                    <img
+                      src={t.photoUrl}
+                      alt={t.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#E51924]/20 border border-[#E51924]/30 flex items-center justify-center font-black text-[#E51924] text-base">
+                      {t.name.substring(0, 2).toUpperCase()}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <h3 className="font-extrabold text-white text-sm">{t.name}</h3>
@@ -180,12 +216,7 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
               </button>
 
               <button
-                onClick={async () => {
-                  if (confirm(`Remove trainer ${t.name}?`)) {
-                    await onDeleteTrainer(t.id);
-                    toast.success('Trainer removed');
-                  }
-                }}
+                onClick={() => setConfirmTarget(t)}
                 className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-rose-400"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -301,6 +332,79 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
                 </div>
               </div>
 
+              {/* Coach Photo */}
+              <div>
+                <label className="block text-xs font-semibold text-white/80 mb-1">
+                  Coach Photo
+                </label>
+                {/* Gallery picker — no capture */}
+                <input
+                  ref={photoGalleryRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoFileChange}
+                />
+                {/* Camera picker — capture="environment" */}
+                <input
+                  ref={photoCameraRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handlePhotoFileChange}
+                />
+                <div className="flex items-center gap-4">
+                  {/* Preview */}
+                  <div
+                    onClick={() => photoGalleryRef.current?.click()}
+                    className="relative w-20 h-20 rounded-2xl overflow-hidden border-2 border-dashed border-white/20 hover:border-[#E51924]/60 cursor-pointer flex-shrink-0 transition-all group bg-white/5"
+                    title="Click to upload photo"
+                  >
+                    {formPhotoUrl ? (
+                      <img src={formPhotoUrl} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <UserCircle2 className="w-10 h-10 text-white/20 group-hover:text-[#E51924]/50 transition-colors" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Camera className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="flex-1 flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => photoGalleryRef.current?.click()}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#E51924]/40 text-white/70 hover:text-white text-xs font-semibold transition-all"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      Upload from Gallery
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => photoCameraRef.current?.click()}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#E51924]/40 text-white/70 hover:text-white text-xs font-semibold transition-all"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      Take a Photo
+                    </button>
+                    {formPhotoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setFormPhotoUrl('')}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl bg-white/3 hover:bg-red-500/10 border border-white/8 hover:border-red-500/30 text-white/40 hover:text-red-400 text-xs font-semibold transition-all"
+                      >
+                        <X className="w-3 h-3" />
+                        Remove Photo
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
@@ -320,6 +424,20 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmTarget}
+        title="Remove Trainer"
+        message={`Remove ${confirmTarget?.name} (${confirmTarget?.id}) from the coaching staff? This cannot be undone.`}
+        confirmLabel="Remove"
+        onConfirm={async () => {
+          if (!confirmTarget) return;
+          await onDeleteTrainer(confirmTarget.id);
+          toast.success(`${confirmTarget.name} removed`);
+          setConfirmTarget(null);
+        }}
+        onCancel={() => setConfirmTarget(null)}
+      />
     </div>
   );
 };

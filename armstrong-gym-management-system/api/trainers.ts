@@ -8,28 +8,30 @@ import type { Trainer } from '../src/types';
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req as any, res as any)) return;
 
-  const payload = authenticateRequest(req as any);
-  if (!payload) return res.status(401).json({ error: 'Unauthorized' });
-
   // _id injected by vercel.json rewrite
   const id = (req.query._id as string) || '';
 
+  // ── Public read: GET /api/trainers (no auth required) ────────────────────────
+  if (!id && req.method === 'GET') {
+    try {
+      const [trainers, members] = await Promise.all([getTrainers(), getMembers()]);
+      const result = trainers.map((t) => ({
+        ...t,
+        assignedMembersCount: members.filter((m) => m.trainerId === t.id).length,
+      }));
+      return res.status(200).json(result);
+    } catch (err: any) {
+      console.error('[trainers GET]', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  // All other routes require auth
+  const payload = authenticateRequest(req as any);
+  if (!payload) return res.status(401).json({ error: 'Unauthorized' });
+
   // ── Collection routes ─────────────────────────────────────────────────────────
   if (!id) {
-    if (req.method === 'GET') {
-      try {
-        const [trainers, members] = await Promise.all([getTrainers(), getMembers()]);
-        const result = trainers.map((t) => ({
-          ...t,
-          assignedMembersCount: members.filter((m) => m.trainerId === t.id).length,
-        }));
-        return res.status(200).json(result);
-      } catch (err: any) {
-        console.error('[trainers GET]', err);
-        return res.status(500).json({ error: 'Internal server error' });
-      }
-    }
-
     if (req.method === 'POST') {
       try {
         const { name, phone, email, specialty, salary, shift, status, joiningDate }

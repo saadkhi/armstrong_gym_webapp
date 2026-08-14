@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck,
   Zap,
@@ -27,7 +27,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Logo } from './Logo';
-import { submitMemberBill } from '../api/client';
+import { submitMemberBill, fetchPublicTrainers } from '../api/client';
+import { Trainer } from '../types';
 import gymBg from '../../assets/gym-bg.jpeg';
 
 interface PortfolioProps {
@@ -41,6 +42,14 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
   const [trialGoal, setTrialGoal] = useState('Weight Loss & Fat Shred');
   const [activeTransformationTab, setActiveTransformationTab] = useState<'all' | 'fatloss' | 'muscle'>('all');
   const [activeTrainerModal, setActiveTrainerModal] = useState<any | null>(null);
+  const [liveTrainers, setLiveTrainers] = useState<Trainer[]>([]);
+
+  // Fetch live trainers from the backend on mount
+  useEffect(() => {
+    fetchPublicTrainers()
+      .then((data) => setLiveTrainers(data))
+      .catch(() => { /* silently fall back to static data */ });
+  }, []);
 
   // Client Payment Bill Submission Modal state
   const [showBillModal, setShowBillModal] = useState(false);
@@ -223,10 +232,14 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
     },
   ];
 
-  const trainers = [
-    {
-      id: 'quadir',
-      name: 'Quadir',
+  // Static display metadata for known trainers (bio, certifications, experience badges)
+  // Keys are lowercase trainer names for matching against live backend data
+  const trainerMeta: Record<string, {
+    role: string; specialty: string; experience: string;
+    certifications: string[]; shift: string; transformationsCount: string;
+    image: string; bio: string;
+  }> = {
+    quadir: {
       role: 'Head Bodybuilding & Strength Coach',
       specialty: 'Powerlifting, Heavy Barbell Hypertrophy & Contest Prep',
       experience: '12+ Years Experience',
@@ -236,9 +249,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       image: 'https://images.unsplash.com/photo-1567013127542-490d757e51fc?auto=format&fit=crop&w=600&q=80',
       bio: 'Master bodybuilding coach with over 12 years of experience. Specializes in progressive overload powerbuilding and heavy hypertrophy.',
     },
-    {
-      id: 'gul',
-      name: 'Gul',
+    gul: {
       role: 'Lead Functional & HIIT Coach',
       specialty: 'Weight Recomposing, Cardio & Functional HIIT',
       experience: '8+ Years Experience',
@@ -248,9 +259,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=600&q=80',
       bio: 'High-energy endurance specialist known for designing high-octane interval sessions that melt body fat while building athletic functional stamina.',
     },
-    {
-      id: 'yasir',
-      name: 'Yasir',
+    yasir: {
       role: 'Senior Strength & Powerlifting Coach',
       specialty: 'Heavy Barbell Lifting, Squat/Bench/Deadlift',
       experience: '10+ Years Experience',
@@ -260,9 +269,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       image: 'https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?auto=format&fit=crop&w=600&q=80',
       bio: 'State-level powerlifter focused on biomechanics, elite barbell technique, heavy lifting programming, and safely increasing 1-rep maximums.',
     },
-    {
-      id: 'hamza',
-      name: 'Hamza',
+    hamza: {
       role: 'High-Performance Athletic & Nutrition Coach',
       specialty: 'Fat Loss, Toning, Posture & Clinical Diet',
       experience: '6+ Years Experience',
@@ -272,7 +279,38 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       image: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=600&q=80',
       bio: 'Specialist in metabolic health, sustainable body composition, athletic conditioning workouts, and balanced nutrition planning.',
     },
-  ];
+  };
+
+  // Build the trainers list from live backend data (if loaded), merged with static meta
+  const trainers = (liveTrainers.length > 0 ? liveTrainers : Object.keys(trainerMeta).map((key) => ({
+    id: key, name: key.charAt(0).toUpperCase() + key.slice(1),
+    phone: '', email: '', specialty: '', salary: 0,
+    shift: 'Morning' as const, status: 'Active' as const, joiningDate: '',
+  }))).map((t) => {
+    const key = t.name.toLowerCase();
+    const meta = trainerMeta[key] ?? {
+      role: t.specialty || 'Fitness Coach',
+      specialty: t.specialty || '',
+      experience: '',
+      certifications: [] as string[],
+      shift: `${t.shift} Shift`,
+      transformationsCount: '',
+      image: t.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.name)}&background=1a1a1a&color=E51924&size=300`,
+      bio: t.specialty || '',
+    };
+    return {
+      id: t.id,
+      name: t.name,
+      role: meta.role,
+      specialty: meta.specialty || t.specialty,
+      experience: meta.experience,
+      certifications: meta.certifications,
+      shift: meta.shift,
+      transformationsCount: meta.transformationsCount,
+      image: t.photoUrl || meta.image,
+      bio: meta.bio,
+    };
+  });
 
   const transformations = [
     {
