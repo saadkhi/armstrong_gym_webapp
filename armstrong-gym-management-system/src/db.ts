@@ -199,8 +199,9 @@ export async function seedDbIfNeeded(): Promise<void> {
   await execute(
     `INSERT INTO admin_users (id, name, email, password_hash, role)
      VALUES ($1, $2, $3, $4, $5)
-     ON CONFLICT (email) DO UPDATE
-       SET password_hash = EXCLUDED.password_hash,
+     ON CONFLICT (id) DO UPDATE
+       SET email         = EXCLUDED.email,
+           password_hash = EXCLUDED.password_hash,
            name          = EXCLUDED.name`,
     [initialAdmin.id, initialAdmin.name, adminEmail, hash, initialAdmin.role]
   );
