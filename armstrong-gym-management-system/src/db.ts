@@ -160,6 +160,18 @@ export async function createTables(): Promise<void> {
     )
   `);
 
+  // Migrate: add new trainer profile columns if they don't exist yet
+  for (const col of [
+    `ALTER TABLE trainers ADD COLUMN IF NOT EXISTS photo_url TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE trainers ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE trainers ADD COLUMN IF NOT EXISTS experience TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE trainers ADD COLUMN IF NOT EXISTS clients_count TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE trainers ADD COLUMN IF NOT EXISTS shift_timing TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE trainers ADD COLUMN IF NOT EXISTS bio TEXT NOT NULL DEFAULT ''`,
+  ]) {
+    await execute(col);
+  }
+
   await execute(`
     CREATE TABLE IF NOT EXISTS expenses (
       id TEXT PRIMARY KEY,
@@ -456,7 +468,13 @@ export async function insertAttendance(a: Attendance): Promise<void> {
 // ─── Trainer queries ───────────────────────────────────────────────────────────
 const TRAINER_SELECT = `
   SELECT id, name, phone, email, specialty, salary, shift, status,
-    joining_date AS "joiningDate"
+    joining_date AS "joiningDate",
+    photo_url AS "photoUrl",
+    role,
+    experience,
+    clients_count AS "clientsCount",
+    shift_timing AS "shiftTiming",
+    bio
   FROM trainers
 `;
 
@@ -466,16 +484,25 @@ export async function getTrainers(): Promise<Trainer[]> {
 
 export async function insertTrainer(t: Trainer): Promise<void> {
   await execute(
-    `INSERT INTO trainers (id,name,phone,email,specialty,salary,shift,status,joining_date)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-    [t.id,t.name,t.phone,t.email,t.specialty,t.salary,t.shift,t.status,t.joiningDate]
+    `INSERT INTO trainers
+       (id,name,phone,email,specialty,salary,shift,status,joining_date,
+        photo_url,role,experience,clients_count,shift_timing,bio)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+    [
+      t.id, t.name, t.phone, t.email, t.specialty,
+      t.salary, t.shift, t.status, t.joiningDate,
+      t.photoUrl || '', t.role || '', t.experience || '',
+      t.clientsCount || '', t.shiftTiming || '', t.bio || '',
+    ]
   );
 }
 
 export async function updateTrainerRecord(id: string, t: Partial<Trainer>): Promise<Trainer | null> {
-  const map: Record<string,string> = {
-    name:'name', phone:'phone', email:'email', specialty:'specialty',
-    salary:'salary', shift:'shift', status:'status', joiningDate:'joining_date',
+  const map: Record<string, string> = {
+    name: 'name', phone: 'phone', email: 'email', specialty: 'specialty',
+    salary: 'salary', shift: 'shift', status: 'status', joiningDate: 'joining_date',
+    photoUrl: 'photo_url', role: 'role', experience: 'experience',
+    clientsCount: 'clients_count', shiftTiming: 'shift_timing', bio: 'bio',
   };
   const fields: string[] = [];
   const vals: any[] = [];
