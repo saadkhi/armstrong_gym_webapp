@@ -353,6 +353,6 @@
     "twilioAccountSid": "",
     "twilioAuthToken": "",
     "twilioWhatsappFrom": "whatsapp:+14155238886",
-    "cronSecret": "armstrong-secret-cron-2026"
+    "cronSecret": ""
   }
 }

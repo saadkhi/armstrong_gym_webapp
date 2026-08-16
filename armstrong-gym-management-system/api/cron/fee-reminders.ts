@@ -1,30 +1,47 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { applyCors } from '../../src/apilib/cors';
 import { nowTimestamp, calcMemberStatus } from '../../src/apilib/helpers';
-import { ensureDb, getMembers, updateMemberRecord, getSettings, insertReminderLog, nextLogId } from '../../src/apilib/db';
+import { ensureDb, getMembers, updateMemberRecord, insertReminderLog, nextLogId } from '../../src/apilib/db';
 import type { ReminderLog } from '../../src/types';
 
-// Cron is secured by a shared secret, not JWT
+/**
+ * Cron endpoint for automated fee and expiry reminders.
+ *
+ * Authentication: Bearer token in the Authorization header matching
+ * the CRON_SECRET environment variable.
+ *
+ * Vercel Cron automatically supplies: Authorization: Bearer <CRON_SECRET>
+ * Manual trigger from the admin UI uses the same header via apiFetch.
+ *
+ * The legacy ?secret= query-param pathway has been removed — secrets must
+ * not appear in URLs (they are logged by proxies and appear in server access logs).
+ */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req as any, res as any)) return;
-  // Vercel Cron sends GET; also accept POST for manual triggers
-  if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  // Vercel Cron sends GET; also accept POST for manual triggers from admin UI
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // ── Authentication ───────────────────────────────────────────────────────────
+  const expectedSecret = process.env.CRON_SECRET?.trim();
+  if (!expectedSecret) {
+    console.error('[cron/fee-reminders] CRON_SECRET is not set — rejecting all requests');
+    return res.status(500).json({ error: 'Server misconfiguration: CRON_SECRET is not set' });
+  }
+
+  const bearer = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '').trim();
+  // x-cron-secret header is kept as an alternative for direct server-to-server calls
+  const providedSecret = bearer || (req.headers['x-cron-secret'] as string | undefined) || '';
+
+  if (providedSecret !== expectedSecret) {
+    return res.status(403).json({ error: 'Forbidden: invalid cron secret' });
+  }
+
+  // ── Processing ───────────────────────────────────────────────────────────────
   try {
     await ensureDb();
-
-    const settings = await getSettings();
-    const bearer = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '').trim();
-    const providedSecret =
-      bearer ||
-      (req.headers['x-cron-secret'] as string) ||
-      (req.query.secret as string) ||
-      '';
-
-    const expectedSecret = process.env.CRON_SECRET || settings.cronSecret;
-    if (expectedSecret && providedSecret !== expectedSecret) {
-      return res.status(403).json({ error: 'Invalid cron secret' });
-    }
 
     const members = await getMembers();
     const now = nowTimestamp();
@@ -36,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     for (const m of members) {
       const status = calcMemberStatus(m.expiryDate);
 
-      // Update status in DB if changed
+      // Update status in DB if it has drifted
       if (status !== m.status) {
         await updateMemberRecord(m.id, { status });
       }

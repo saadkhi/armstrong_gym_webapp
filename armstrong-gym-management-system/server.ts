@@ -5,6 +5,8 @@ import { createServer as createViteServer } from 'vite';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
+import * as Sentry from '@sentry/node';
 
 import {
   createTables,
@@ -19,6 +21,7 @@ import {
   updateMemberRecord,
   deleteMemberRecord,
   nextMemberId,
+  getMembersPaged,
   // payments
   getPayments,
   getPaymentById,
@@ -26,11 +29,17 @@ import {
   updatePaymentRecord,
   deletePaymentRecord,
   nextPaymentId,
+  getPaymentsPaged,
+  // transactional payment helpers
+  insertPaymentWithBalanceUpdate,
+  verifyPaymentWithBalanceUpdate,
+  deletePaymentWithBalanceRecalc,
   // attendance
   getAttendance,
   getTodayCheckIn,
   insertAttendance,
   nextAttendanceId,
+  getAttendancePaged,
   // trainers
   getTrainers,
   insertTrainer,
@@ -42,6 +51,7 @@ import {
   insertExpense,
   deleteExpenseRecord,
   nextExpenseId,
+  getExpensesPaged,
   // reminder logs
   getReminderLogs,
   insertReminderLog,
@@ -49,6 +59,8 @@ import {
   // settings
   getSettings,
   updateSettings,
+  // SQL-aggregate stats
+  getStatsFromDb,
 } from './src/db';
 
 import type { Member, Payment, Attendance, Trainer, Expense, ReminderLog } from './src/types';
@@ -119,18 +131,122 @@ function calcExpiry(startDate: string, months: number): string {
 }
 
 async function startServer() {
+  // ─── Sentry ───────────────────────────────────────────────────────────────
+  if (process.env.SENTRY_DSN) {
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      environment: process.env.NODE_ENV || 'production',
+      // Capture 100% of transactions in dev, 10% in production
+      tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+    });
+  }
+
   const app = express();
 
-  app.use(cors({ origin: true, credentials: true }));
+  // ─── Sentry request handler (must be first middleware) ────────────────────
+  if (process.env.SENTRY_DSN) {
+    app.use(Sentry.Handlers.requestHandler());
+    app.use(Sentry.Handlers.tracingHandler());
+  }
+
+  // ─── CORS ─────────────────────────────────────────────────────────────────
+  // Build allowlist from env var (comma-separated). Localhost is always
+  // included in non-production so the Vite dev server can reach the API.
+  const allowedOrigins = new Set<string>(
+    (process.env.ALLOWED_ORIGINS ?? '')
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean)
+  );
+  if (process.env.NODE_ENV !== 'production') {
+    ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:5173']
+      .forEach((o) => allowedOrigins.add(o));
+  }
+
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        // Allow requests with no Origin header (server-to-server, curl, health checks)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.has(origin)) return callback(null, true);
+        callback(new Error(`CORS: origin '${origin}' is not allowed`));
+      },
+      credentials: true,
+    })
+  );
   app.use(express.json({ limit: '10mb' }));
+
+  // ─── Rate limiters ─────────────────────────────────────────────────────────
+  // Strict limiter for login: 10 attempts per 15 minutes per IP
+  const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Too many login attempts. Please try again in 15 minutes.' },
+    skipSuccessfulRequests: true, // only count failed/errored requests
+  });
+
+  // General API limiter: 300 requests per minute per IP (protects all other routes)
+  const apiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests. Please slow down.' },
+  });
+
+  app.use('/api/', apiLimiter);
 
   // Init DB
   await createTables();
   await seedDbIfNeeded();
   console.log('✓ Database ready');
 
+  // ─── Health ────────────────────────────────────────────────────────────────
+  app.get('/api/health', async (_req: Request, res: Response) => {
+    const start = Date.now();
+    let dbOk = false;
+    let dbLatencyMs: number | null = null;
+    try {
+      const { getPool } = await import('./src/db');
+      const dbStart = Date.now();
+      await getPool().query('SELECT 1');
+      dbLatencyMs = Date.now() - dbStart;
+      dbOk = true;
+    } catch { dbOk = false; }
+    const status = dbOk ? 'ok' : 'degraded';
+    return res.status(dbOk ? 200 : 503).json({
+      status,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      responseTimeMs: Date.now() - start,
+      services: { database: { status: dbOk ? 'ok' : 'error', latencyMs: dbLatencyMs } },
+      version: process.env.npm_package_version || '0.0.1',
+      env: process.env.NODE_ENV || 'development',
+    });
+  });
+
+  // ─── Image Upload (Cloudinary) ────────────────────────────────────────────
+  app.post('/api/upload', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { uploadToCloudinary } = await import('./src/lib/cloudinary');
+      const { file, folder = 'members' } = req.body as { file: string; folder?: string };
+      if (!file || !file.startsWith('data:image/')) {
+        return res.status(400).json({ error: 'file must be a valid image data-URI' });
+      }
+      const validFolders = ['members', 'trainers', 'bills'];
+      const uploadFolder = validFolders.includes(folder) ? folder : 'members';
+      const url = await uploadToCloudinary(file, uploadFolder as any);
+      return res.json({ url });
+    } catch (err) {
+      console.error('[upload]', err);
+      return res.status(500).json({ error: 'Image upload failed' });
+    }
+  });
+
   // ─── Auth ──────────────────────────────────────────────────────────────────
-  app.post('/api/auth/login', async (req: Request, res: Response) => {
+  app.post('/api/auth/login', loginLimiter, async (req: Request, res: Response) => {
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ success: false, error: 'Email and password are required' });
@@ -168,24 +284,8 @@ async function startServer() {
   // ─── Stats ─────────────────────────────────────────────────────────────────
   app.get('/api/stats', requireAuth, async (_req: Request, res: Response) => {
     try {
-      const [members, payments, expenses] = await Promise.all([getMembers(), getPayments(), getExpenses()]);
-      const withStatus = members.map((m) => ({ ...m, status: calcMemberStatus(m.expiryDate) }));
-      const today = todayStr();
-      const month = today.substring(0, 7);
-
-      return res.json({
-        totalMembers: withStatus.length,
-        activeMembers: withStatus.filter((m) => m.status === 'Active').length,
-        expiringMembers: withStatus.filter((m) => m.status === 'Expiring').length,
-        expiredMembers: withStatus.filter((m) => m.status === 'Expired').length,
-        todaysIncome: payments.filter((p) => p.date.startsWith(today)).reduce((s, p) => s + Number(p.amount), 0),
-        monthlyIncome: payments.filter((p) => p.date.startsWith(month)).reduce((s, p) => s + Number(p.amount), 0),
-        monthlyExpenses: expenses.filter((e) => e.date.startsWith(month)).reduce((s, e) => s + Number(e.amount), 0),
-        outstandingDues: withStatus.reduce((s, m) => s + Number(m.remainingBalance), 0),
-        netProfit:
-          payments.filter((p) => p.date.startsWith(month)).reduce((s, p) => s + Number(p.amount), 0) -
-          expenses.filter((e) => e.date.startsWith(month)).reduce((s, e) => s + Number(e.amount), 0),
-      });
+      const stats = await getStatsFromDb();
+      return res.json(stats);
     } catch (err) {
       console.error('[stats]', err);
       return res.status(500).json({ error: 'Internal server error' });
@@ -193,8 +293,16 @@ async function startServer() {
   });
 
   // ─── Members ───────────────────────────────────────────────────────────────
-  app.get('/api/members', requireAuth, async (_req, res) => {
+  app.get('/api/members', requireAuth, async (req, res) => {
     try {
+      const pageParam = req.query.page as string | undefined;
+      if (pageParam) {
+        const page     = Math.max(1, parseInt(pageParam, 10) || 1);
+        const pageSize = Math.min(200, Math.max(1, parseInt((req.query.pageSize as string) || '50', 10)));
+        const result   = await getMembersPaged(page, pageSize);
+        result.data    = result.data.map((m) => ({ ...m, status: calcMemberStatus(m.expiryDate) }));
+        return res.json(result);
+      }
       const members = await getMembers();
       const updated = members.map((m) => ({ ...m, status: calcMemberStatus(m.expiryDate) }));
       void Promise.allSettled(
@@ -277,8 +385,16 @@ async function startServer() {
   });
 
   // ─── Payments ──────────────────────────────────────────────────────────────
-  app.get('/api/payments', requireAuth, async (_req, res) => {
-    try { return res.json(await getPayments()); }
+  app.get('/api/payments', requireAuth, async (req, res) => {
+    try {
+      const pageParam = req.query.page as string | undefined;
+      if (pageParam) {
+        const page     = Math.max(1, parseInt(pageParam, 10) || 1);
+        const pageSize = Math.min(200, Math.max(1, parseInt((req.query.pageSize as string) || '50', 10)));
+        return res.json(await getPaymentsPaged(page, pageSize));
+      }
+      return res.json(await getPayments());
+    }
     catch (err) { return res.status(500).json({ error: 'Internal server error' }); }
   });
 
@@ -290,9 +406,9 @@ async function startServer() {
       const payAmt = Number(amount);
       if (isNaN(payAmt) || payAmt <= 0) return res.status(400).json({ error: 'Invalid payment amount' });
 
-      const now = nowTimestamp();
+      const now    = nowTimestamp();
       const status = verificationStatus || 'Verified';
-      const payId = await nextPaymentId();
+      const payId  = await nextPaymentId();
       const newPayment: Payment = {
         id: payId, memberId: member.id, memberName: member.name, amount: payAmt,
         paymentMethod: paymentMethod || 'Cash', date: now,
@@ -302,14 +418,10 @@ async function startServer() {
         verifiedAt: status === 'Verified' ? now : undefined,
         notes: notes || '',
       };
-      await insertPayment(newPayment);
-      let updatedMember = member;
-      if (status === 'Verified') {
-        const newPaid = Number(member.amountPaid) + payAmt;
-        const newBal = Math.max(0, Number(member.planCost) - newPaid);
-        updatedMember = (await updateMemberRecord(member.id, { amountPaid: newPaid, remainingBalance: newBal })) ?? member;
-      }
-      return res.status(201).json({ payment: newPayment, member: updatedMember });
+      // Atomic: insert payment + update member balance in one transaction
+      const { member: updatedMember } =
+        await insertPaymentWithBalanceUpdate(newPayment, status === 'Verified');
+      return res.status(201).json({ payment: newPayment, member: updatedMember ?? member });
     } catch (err) { console.error('[payments POST]', err); return res.status(500).json({ error: 'Internal server error' }); }
   });
 
@@ -334,7 +446,8 @@ async function startServer() {
         billUrl: billUrl || '', verificationStatus: 'Pending Verification',
         notes: notes || 'Submitted via Member Bill Upload Portal',
       };
-      await insertPayment(newPayment);
+      // Pending submissions — no balance change, still atomic insert
+      await insertPaymentWithBalanceUpdate(newPayment, false);
       return res.status(201).json({
         success: true,
         message: `Bill of ₹${payAmt} submitted. Gym admin will verify and update your record.`,
@@ -345,46 +458,46 @@ async function startServer() {
 
   app.post('/api/payments/verify/:id', requireAuth, async (req, res) => {
     try {
-      const payment = await getPaymentById(req.params.id);
-      if (!payment) return res.status(404).json({ error: 'Payment not found' });
-      const member = await getMemberById(payment.memberId);
-      if (!member) return res.status(404).json({ error: 'Member not found' });
+      const paymentBefore = await getPaymentById(req.params.id);
+      if (!paymentBefore) return res.status(404).json({ error: 'Payment not found' });
+      const memberBefore = await getMemberById(paymentBefore.memberId);
+      if (!memberBefore) return res.status(404).json({ error: 'Member not found' });
+
       const now = nowTimestamp();
-      if (payment.verificationStatus !== 'Verified') {
-        const newPaid = Number(member.amountPaid) + Number(payment.amount);
-        await updateMemberRecord(member.id, { amountPaid: newPaid, remainingBalance: Math.max(0, Number(member.planCost) - newPaid) });
-      }
-      await updatePaymentRecord(req.params.id, { verificationStatus: 'Verified', verifiedBy: 'Armstrong Admin', verifiedAt: now });
-      const updatedPayment = await getPaymentById(req.params.id);
-      const updatedMember = await getMemberById(payment.memberId);
-      const receiptMsg = `Dear ${member.name}, your payment of ₹${payment.amount} (Ref: ${payment.transactionId || payment.id}) has been VERIFIED on the Armstrong Gym Portal! Remaining Balance: ₹${updatedMember?.remainingBalance ?? 0}. Thank you!`;
+      // Atomic: verify status + update member balance in one transaction
+      const { payment: updatedPayment, member: updatedMember } =
+        await verifyPaymentWithBalanceUpdate(req.params.id, 'Armstrong Admin', now);
+
+      const receiptMsg = `Dear ${memberBefore.name}, your payment of ₹${paymentBefore.amount} (Ref: ${paymentBefore.transactionId || paymentBefore.id}) has been VERIFIED on the Armstrong Gym Portal! Remaining Balance: ₹${updatedMember?.remainingBalance ?? 0}. Thank you!`;
       const logId = await nextLogId();
-      await insertReminderLog({ id: logId, memberId: member.id, memberName: member.name, phone: member.phone, type: 'Custom', message: receiptMsg, sentAt: now, status: 'Sent' });
+      await insertReminderLog({ id: logId, memberId: memberBefore.id, memberName: memberBefore.name, phone: memberBefore.phone, type: 'Custom', message: receiptMsg, sentAt: now, status: 'Sent' });
       return res.json({
         success: true, payment: updatedPayment, member: updatedMember, receiptMsg,
-        whatsappUrl: `https://wa.me/${member.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(receiptMsg)}`,
+        whatsappUrl: `https://wa.me/${memberBefore.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(receiptMsg)}`,
       });
     } catch (err) { return res.status(500).json({ error: 'Internal server error' }); }
   });
 
   app.delete('/api/payments/:id', requireAuth, async (req, res) => {
     try {
-      const payment = await deletePaymentRecord(req.params.id);
-      if (!payment) return res.status(404).json({ error: 'Payment not found' });
-      if (payment.verificationStatus === 'Verified') {
-        const member = await getMemberById(payment.memberId);
-        if (member) {
-          const newPaid = Math.max(0, Number(member.amountPaid) - Number(payment.amount));
-          await updateMemberRecord(member.id, { amountPaid: newPaid, remainingBalance: Math.max(0, Number(member.planCost) - newPaid) });
-        }
-      }
-      return res.json({ success: true, message: 'Payment deleted & balance recalculated' });
+      // Atomic: delete payment + recalculate member balance in one transaction
+      const { deleted } = await deletePaymentWithBalanceRecalc(req.params.id);
+      if (!deleted) return res.status(404).json({ error: 'Payment not found' });
+      return res.json({ success: true, message: 'Payment deleted & member balance recalculated' });
     } catch (err) { return res.status(500).json({ error: 'Internal server error' }); }
   });
 
   // ─── Attendance ────────────────────────────────────────────────────────────
-  app.get('/api/attendance', requireAuth, async (_req, res) => {
-    try { return res.json(await getAttendance()); }
+  app.get('/api/attendance', requireAuth, async (req, res) => {
+    try {
+      const pageParam = req.query.page as string | undefined;
+      if (pageParam) {
+        const page     = Math.max(1, parseInt(pageParam, 10) || 1);
+        const pageSize = Math.min(200, Math.max(1, parseInt((req.query.pageSize as string) || '50', 10)));
+        return res.json(await getAttendancePaged(page, pageSize));
+      }
+      return res.json(await getAttendance());
+    }
     catch (err) { return res.status(500).json({ error: 'Internal server error' }); }
   });
 
@@ -438,8 +551,16 @@ async function startServer() {
   });
 
   // ─── Expenses ──────────────────────────────────────────────────────────────
-  app.get('/api/expenses', requireAuth, async (_req, res) => {
-    try { return res.json(await getExpenses()); }
+  app.get('/api/expenses', requireAuth, async (req, res) => {
+    try {
+      const pageParam = req.query.page as string | undefined;
+      if (pageParam) {
+        const page     = Math.max(1, parseInt(pageParam, 10) || 1);
+        const pageSize = Math.min(200, Math.max(1, parseInt((req.query.pageSize as string) || '50', 10)));
+        return res.json(await getExpensesPaged(page, pageSize));
+      }
+      return res.json(await getExpenses());
+    }
     catch (err) { return res.status(500).json({ error: 'Internal server error' }); }
   });
 
@@ -512,11 +633,18 @@ async function startServer() {
   // ─── Cron ──────────────────────────────────────────────────────────────────
   app.post('/api/cron/fee-reminders', async (req, res) => {
     try {
-      const settings = await getSettings();
+      const expectedSecret = process.env.CRON_SECRET?.trim();
+      if (!expectedSecret) {
+        console.error('[cron/fee-reminders] CRON_SECRET is not set');
+        return res.status(500).json({ error: 'Server misconfiguration: CRON_SECRET is not set' });
+      }
+
       const bearer = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '').trim();
-      const provided = bearer || (req.headers['x-cron-secret'] as string) || (req.query.secret as string) || '';
-      const expectedSecret = process.env.CRON_SECRET || settings.cronSecret;
-      if (expectedSecret && provided !== expectedSecret) return res.status(403).json({ error: 'Invalid cron secret' });
+      const provided = bearer || (req.headers['x-cron-secret'] as string | undefined) || '';
+
+      if (provided !== expectedSecret) {
+        return res.status(403).json({ error: 'Forbidden: invalid cron secret' });
+      }
       const members = await getMembers();
       const now = nowTimestamp();
       let feeRemindersSent = 0, expiryRemindersSent = 0, expiredNoticesSent = 0;
@@ -567,6 +695,17 @@ async function startServer() {
     app.use(express.static(distPath));
     app.get('*', (_req, res) => res.sendFile(path.join(distPath, 'index.html')));
   }
+
+  // ─── Sentry error handler (must be before any other error middleware) ──────
+  if (process.env.SENTRY_DSN) {
+    app.use(Sentry.Handlers.errorHandler());
+  }
+
+  // ─── Generic error handler ────────────────────────────────────────────────
+  app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+    console.error('[unhandled error]', err);
+    res.status(500).json({ error: 'Internal server error' });
+  });
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`✓ Armstrong Gym API server running on http://localhost:${PORT}`);

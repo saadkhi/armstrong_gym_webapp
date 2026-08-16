@@ -9,6 +9,16 @@ import {
   AdminUser,
 } from '../types';
 
+// Re-export the PageResult shape so consumers can type against it without
+// importing from the server-only db module.
+export interface PageResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 const API_BASE = '/api';
 
 // ─── Token helpers ─────────────────────────────────────────────────────────────
@@ -62,6 +72,31 @@ export async function fetchCurrentUser(): Promise<{ success: boolean; user?: Adm
   return res.json();
 }
 
+// ─── Image Upload ──────────────────────────────────────────────────────────────
+/**
+ * Upload a base64 data-URI to Cloudinary via the backend proxy.
+ * Returns the permanent Cloudinary HTTPS URL.
+ * Falls back to the original data-URI if the upload endpoint is unavailable.
+ */
+export async function uploadImage(
+  dataUri: string,
+  folder: 'members' | 'trainers' | 'bills' = 'members'
+): Promise<string> {
+  // Skip upload if it's already a remote URL (not a data-URI)
+  if (!dataUri.startsWith('data:')) return dataUri;
+  try {
+    const res = await apiFetch(`${API_BASE}/upload`, {
+      method: 'POST',
+      body: JSON.stringify({ file: dataUri, folder }),
+    });
+    if (!res.ok) return dataUri; // fallback — keep data-URI
+    const data = await res.json();
+    return data.url ?? dataUri;
+  } catch {
+    return dataUri; // fallback
+  }
+}
+
 // ─── Stats ─────────────────────────────────────────────────────────────────────
 export async function fetchStats(): Promise<SystemStats> {
   const res = await apiFetch(`${API_BASE}/stats`);
@@ -72,6 +107,12 @@ export async function fetchStats(): Promise<SystemStats> {
 // ─── Members ───────────────────────────────────────────────────────────────────
 export async function fetchMembers(): Promise<Member[]> {
   const res = await apiFetch(`${API_BASE}/members`);
+  if (!res.ok) throw new Error('Failed to fetch members');
+  return res.json();
+}
+
+export async function fetchMembersPaged(page: number, pageSize = 50): Promise<PageResult<Member>> {
+  const res = await apiFetch(`${API_BASE}/members?page=${page}&pageSize=${pageSize}`);
   if (!res.ok) throw new Error('Failed to fetch members');
   return res.json();
 }
@@ -115,6 +156,12 @@ export async function deleteMember(id: string): Promise<{ success: boolean; mess
 // ─── Payments ──────────────────────────────────────────────────────────────────
 export async function fetchPayments(): Promise<Payment[]> {
   const res = await apiFetch(`${API_BASE}/payments`);
+  if (!res.ok) throw new Error('Failed to fetch payments');
+  return res.json();
+}
+
+export async function fetchPaymentsPaged(page: number, pageSize = 50): Promise<PageResult<Payment>> {
+  const res = await apiFetch(`${API_BASE}/payments?page=${page}&pageSize=${pageSize}`);
   if (!res.ok) throw new Error('Failed to fetch payments');
   return res.json();
 }
@@ -188,6 +235,12 @@ export async function fetchAttendance(): Promise<Attendance[]> {
   return res.json();
 }
 
+export async function fetchAttendancePaged(page: number, pageSize = 50): Promise<PageResult<Attendance>> {
+  const res = await apiFetch(`${API_BASE}/attendance?page=${page}&pageSize=${pageSize}`);
+  if (!res.ok) throw new Error('Failed to fetch attendance');
+  return res.json();
+}
+
 export async function checkInMember(
   memberId: string,
   checkInMethod: 'QR Scan' | 'Manual' = 'QR Scan'
@@ -242,6 +295,12 @@ export async function deleteTrainer(id: string): Promise<{ success: boolean }> {
 // ─── Expenses ──────────────────────────────────────────────────────────────────
 export async function fetchExpenses(): Promise<Expense[]> {
   const res = await apiFetch(`${API_BASE}/expenses`);
+  if (!res.ok) throw new Error('Failed to fetch expenses');
+  return res.json();
+}
+
+export async function fetchExpensesPaged(page: number, pageSize = 50): Promise<PageResult<Expense>> {
+  const res = await apiFetch(`${API_BASE}/expenses?page=${page}&pageSize=${pageSize}`);
   if (!res.ok) throw new Error('Failed to fetch expenses');
   return res.json();
 }

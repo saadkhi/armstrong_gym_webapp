@@ -69,6 +69,15 @@ export interface DbSettings {
   cronSecret: string;
 }
 
+/** Resolve the required CRON_SECRET from the environment. Throws on startup if missing. */
+export function getRequiredCronSecret(): string {
+  const s = process.env.CRON_SECRET;
+  if (!s || s.trim() === '') {
+    throw new Error('CRON_SECRET environment variable is required but not set.');
+  }
+  return s.trim();
+}
+
 // ─── Table Creation ────────────────────────────────────────────────────────────
 export async function createTables(): Promise<void> {
   await execute(`
@@ -88,7 +97,7 @@ export async function createTables(): Promise<void> {
       twilio_account_sid TEXT NOT NULL DEFAULT '',
       twilio_auth_token TEXT NOT NULL DEFAULT '',
       twilio_whatsapp_from TEXT NOT NULL DEFAULT 'whatsapp:+14155238886',
-      cron_secret TEXT NOT NULL DEFAULT 'armstrong-secret-cron-2026'
+      cron_secret TEXT NOT NULL DEFAULT ''
     )
   `);
 
@@ -195,6 +204,30 @@ export async function createTables(): Promise<void> {
       status TEXT NOT NULL DEFAULT 'Sent'
     )
   `);
+
+  // ─── Indexes ──────────────────────────────────────────────────────────────────
+  // All use IF NOT EXISTS so they are safe to run on every cold start / re-deploy.
+
+  // members — fast lookups by status (dashboard counts) and expiry (cron + status refresh)
+  await execute(`CREATE INDEX IF NOT EXISTS idx_members_status      ON members(status)`);
+  await execute(`CREATE INDEX IF NOT EXISTS idx_members_expiry_date ON members(expiry_date)`);
+  await execute(`CREATE INDEX IF NOT EXISTS idx_members_phone       ON members(phone)`);
+
+  // payments — most queries filter or join on member_id; date prefix scans for monthly stats
+  await execute(`CREATE INDEX IF NOT EXISTS idx_payments_member_id ON payments(member_id)`);
+  await execute(`CREATE INDEX IF NOT EXISTS idx_payments_date       ON payments(date)`);
+  await execute(`CREATE INDEX IF NOT EXISTS idx_payments_status     ON payments(verification_status)`);
+
+  // attendance — duplicate check-in query hits (member_id, date) together; history filters by date
+  await execute(`CREATE INDEX IF NOT EXISTS idx_attendance_member_date ON attendance(member_id, date)`);
+  await execute(`CREATE INDEX IF NOT EXISTS idx_attendance_date        ON attendance(date)`);
+
+  // reminder_logs — ordered reads by sent_at; filter by member_id for per-member history
+  await execute(`CREATE INDEX IF NOT EXISTS idx_logs_sent_at   ON reminder_logs(sent_at DESC)`);
+  await execute(`CREATE INDEX IF NOT EXISTS idx_logs_member_id ON reminder_logs(member_id)`);
+
+  // expenses — date prefix scans for monthly expense totals
+  await execute(`CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date)`);
 }
 
 // ─── Seed ──────────────────────────────────────────────────────────────────────
@@ -206,7 +239,10 @@ export async function seedDbIfNeeded(): Promise<void> {
   //   - First deploy: creates the admin row.
   //   - Subsequent deploys: updates email + password if env vars changed.
   const adminEmail = (process.env.ADMIN_EMAIL || initialAdmin.email).trim().toLowerCase();
-  const rawPassword = process.env.ADMIN_PASSWORD || 'admin123';
+  const rawPassword = process.env.ADMIN_PASSWORD;
+  if (!rawPassword || rawPassword.trim() === '') {
+    throw new Error('ADMIN_PASSWORD environment variable is required but not set.');
+  }
   const hash = await bcrypt.hash(rawPassword, 12);
   await execute(
     `INSERT INTO admin_users (id, name, email, password_hash, role)
@@ -221,6 +257,7 @@ export async function seedDbIfNeeded(): Promise<void> {
   // Seed settings
   const settingsRows = await query('SELECT id FROM settings LIMIT 1');
   if (settingsRows.length === 0) {
+    const cronSecret = getRequiredCronSecret();
     await execute(
       `INSERT INTO settings (id, gym_name, twilio_account_sid, twilio_auth_token, twilio_whatsapp_from, cron_secret)
        VALUES (1, $1, $2, $3, $4, $5) ON CONFLICT (id) DO NOTHING`,
@@ -229,7 +266,7 @@ export async function seedDbIfNeeded(): Promise<void> {
         process.env.TWILIO_ACCOUNT_SID || '',
         process.env.TWILIO_AUTH_TOKEN || '',
         process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886',
-        process.env.CRON_SECRET || 'armstrong-secret-cron-2026',
+        cronSecret,
       ]
     );
   }
@@ -573,7 +610,7 @@ export async function getSettings(): Promise<DbSettings> {
     gymName: process.env.GYM_NAME || 'Armstrong Gym & Fitness Club',
     twilioAccountSid: '', twilioAuthToken: '',
     twilioWhatsappFrom: 'whatsapp:+14155238886',
-    cronSecret: process.env.CRON_SECRET || 'armstrong-secret-cron-2026',
+    cronSecret: process.env.CRON_SECRET || '',
   };
 }
 
@@ -646,4 +683,334 @@ export async function nextExpenseId(): Promise<string> {
 export async function nextLogId(): Promise<string> {
   const rows = await query<{ count: string }>('SELECT COUNT(*) FROM reminder_logs');
   return `LOG-${3000 + Number(rows[0].count) + 1}`;
+}
+
+export async function nextLogId(): Promise<string> {
+  const rows = await query<{ count: string }>('SELECT COUNT(*) FROM reminder_logs');
+  return `LOG-${3000 + Number(rows[0].count) + 1}`;
+}
+
+// ─── SQL-aggregate stats ───────────────────────────────────────────────────────
+/**
+ * Returns dashboard stats using a single DB round-trip with SQL aggregates
+ * instead of fetching all rows into app-memory and reducing in JS.
+ *
+ * Member statuses are derived from expiry_date using CASE expressions so the
+ * counts stay consistent with calcMemberStatus().  "Expiring" = expires within
+ * the next 7 days (inclusive today).  "Expired" = expiry_date < today.
+ */
+export async function getStatsFromDb(): Promise<{
+  totalMembers: number;
+  activeMembers: number;
+  expiringMembers: number;
+  expiredMembers: number;
+  todaysIncome: number;
+  monthlyIncome: number;
+  monthlyExpenses: number;
+  outstandingDues: number;
+  netProfit: number;
+}> {
+  const today = new Date().toISOString().split('T')[0];          // YYYY-MM-DD
+  const monthPrefix = today.substring(0, 7);                     // YYYY-MM
+
+  // Member status counts + outstanding dues in one query
+  const memberStats = await query<{
+    total: string;
+    active: string;
+    expiring: string;
+    expired: string;
+    outstanding: string;
+  }>(`
+    SELECT
+      COUNT(*)::TEXT                                                     AS total,
+      COUNT(*) FILTER (
+        WHERE expiry_date > ($1::date + INTERVAL '7 days')
+      )::TEXT                                                            AS active,
+      COUNT(*) FILTER (
+        WHERE expiry_date >= $1::date
+          AND expiry_date <= ($1::date + INTERVAL '7 days')
+      )::TEXT                                                            AS expiring,
+      COUNT(*) FILTER (
+        WHERE expiry_date < $1::date
+      )::TEXT                                                            AS expired,
+      COALESCE(SUM(remaining_balance), 0)::TEXT                         AS outstanding
+    FROM members
+  `, [today]);
+
+  // Payment income aggregates
+  const paymentStats = await query<{
+    today_income: string;
+    month_income: string;
+  }>(`
+    SELECT
+      COALESCE(SUM(amount) FILTER (WHERE date::text LIKE $1), 0)::TEXT  AS today_income,
+      COALESCE(SUM(amount) FILTER (WHERE date::text LIKE $2), 0)::TEXT  AS month_income
+    FROM payments
+  `, [`${today}%`, `${monthPrefix}%`]);
+
+  // Expense aggregate for current month
+  const expenseStats = await query<{ month_expenses: string }>(`
+    SELECT COALESCE(SUM(amount) FILTER (WHERE date LIKE $1), 0)::TEXT AS month_expenses
+    FROM expenses
+  `, [`${monthPrefix}%`]);
+
+  const ms = memberStats[0];
+  const ps = paymentStats[0];
+  const es = expenseStats[0];
+
+  const monthlyIncome   = parseFloat(ps.month_income);
+  const monthlyExpenses = parseFloat(es.month_expenses);
+
+  return {
+    totalMembers:     parseInt(ms.total,    10),
+    activeMembers:    parseInt(ms.active,   10),
+    expiringMembers:  parseInt(ms.expiring, 10),
+    expiredMembers:   parseInt(ms.expired,  10),
+    todaysIncome:     parseFloat(ps.today_income),
+    monthlyIncome,
+    monthlyExpenses,
+    outstandingDues:  parseFloat(ms.outstanding),
+    netProfit:        monthlyIncome - monthlyExpenses,
+  };
+}
+
+// ─── Paginated query helpers ───────────────────────────────────────────────────
+export interface PageResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export async function getMembersPaged(page: number, pageSize: number): Promise<PageResult<Member>> {
+  const offset = (page - 1) * pageSize;
+  const [rows, countRows] = await Promise.all([
+    query<Member>(MEMBER_SELECT + ' ORDER BY id LIMIT $1 OFFSET $2', [pageSize, offset]),
+    query<{ count: string }>('SELECT COUNT(*)::TEXT AS count FROM members'),
+  ]);
+  const total = parseInt(countRows[0].count, 10);
+  return { data: rows, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+}
+
+export async function getPaymentsPaged(page: number, pageSize: number): Promise<PageResult<Payment>> {
+  const offset = (page - 1) * pageSize;
+  const [rows, countRows] = await Promise.all([
+    query<Payment>(PAYMENT_SELECT + ' ORDER BY date DESC LIMIT $1 OFFSET $2', [pageSize, offset]),
+    query<{ count: string }>('SELECT COUNT(*)::TEXT AS count FROM payments'),
+  ]);
+  const total = parseInt(countRows[0].count, 10);
+  return { data: rows, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+}
+
+export async function getAttendancePaged(page: number, pageSize: number): Promise<PageResult<Attendance>> {
+  const offset = (page - 1) * pageSize;
+  const [rows, countRows] = await Promise.all([
+    query<Attendance>(ATTENDANCE_SELECT + ' ORDER BY date DESC, time DESC LIMIT $1 OFFSET $2', [pageSize, offset]),
+    query<{ count: string }>('SELECT COUNT(*)::TEXT AS count FROM attendance'),
+  ]);
+  const total = parseInt(countRows[0].count, 10);
+  return { data: rows, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+}
+
+export async function getExpensesPaged(page: number, pageSize: number): Promise<PageResult<Expense>> {
+  const offset = (page - 1) * pageSize;
+  const [rows, countRows] = await Promise.all([
+    query<Expense>('SELECT id, title, amount, category, date, notes FROM expenses ORDER BY date DESC LIMIT $1 OFFSET $2', [pageSize, offset]),
+    query<{ count: string }>('SELECT COUNT(*)::TEXT AS count FROM expenses'),
+  ]);
+  const total = parseInt(countRows[0].count, 10);
+  return { data: rows, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+}
+
+// ─── Transaction helpers ───────────────────────────────────────────────────────
+
+/**
+ * Runs `fn` inside a BEGIN/COMMIT block.  Rolls back automatically on any
+ * error and re-throws so the caller can return a 500.
+ */
+export async function withTransaction<T>(fn: (client: import('pg').PoolClient) => Promise<T>): Promise<T> {
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Inserts a payment record and — when status is 'Verified' — atomically
+ * updates the member's amountPaid / remainingBalance in the same transaction.
+ *
+ * Returns the inserted payment and the (potentially updated) member.
+ */
+export async function insertPaymentWithBalanceUpdate(
+  payment: Payment,
+  applyToMember: boolean
+): Promise<{ payment: Payment; member: Member | null }> {
+  return withTransaction(async (client) => {
+    // 1. Insert payment
+    await client.query(
+      `INSERT INTO payments
+         (id, member_id, member_name, amount, payment_method, date,
+          transaction_id, bill_url, verification_status, verified_by, verified_at, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+      [
+        payment.id, payment.memberId, payment.memberName, payment.amount,
+        payment.paymentMethod, payment.date, payment.transactionId,
+        payment.billUrl ?? '', payment.verificationStatus,
+        payment.verifiedBy ?? null, payment.verifiedAt ?? null, payment.notes ?? '',
+      ]
+    );
+
+    if (!applyToMember) {
+      // Unverified / pending — no balance change yet
+      const memberRows = await client.query<Member>(
+        MEMBER_SELECT + ' WHERE id = $1',
+        [payment.memberId]
+      );
+      return { payment, member: memberRows.rows[0] ?? null };
+    }
+
+    // 2. Lock the member row for update
+    const memberRows = await client.query<Member>(
+      MEMBER_SELECT + ' WHERE id = $1 FOR UPDATE',
+      [payment.memberId]
+    );
+    const member = memberRows.rows[0];
+    if (!member) return { payment, member: null };
+
+    const newPaid    = Number(member.amountPaid)  + Number(payment.amount);
+    const newBalance = Math.max(0, Number(member.planCost) - newPaid);
+
+    // 3. Update member balance
+    await client.query(
+      `UPDATE members SET amount_paid = $1, remaining_balance = $2 WHERE id = $3`,
+      [newPaid, newBalance, member.id]
+    );
+
+    const updatedMemberRows = await client.query<Member>(
+      MEMBER_SELECT + ' WHERE id = $1',
+      [member.id]
+    );
+    return { payment, member: updatedMemberRows.rows[0] ?? null };
+  });
+}
+
+/**
+ * Verifies a pending payment and atomically updates the member's balance.
+ * No-ops (but still succeeds) if the payment is already Verified.
+ */
+export async function verifyPaymentWithBalanceUpdate(
+  paymentId: string,
+  verifiedBy: string,
+  verifiedAt: string
+): Promise<{ payment: Payment | null; member: Member | null }> {
+  return withTransaction(async (client) => {
+    // 1. Fetch + lock the payment row
+    const payRows = await client.query<Payment>(
+      PAYMENT_SELECT + ' WHERE id = $1 FOR UPDATE',
+      [paymentId]
+    );
+    const payment = payRows.rows[0];
+    if (!payment) return { payment: null, member: null };
+
+    // 2. If already verified, nothing to do
+    if (payment.verificationStatus === 'Verified') {
+      const memberRows = await client.query<Member>(
+        MEMBER_SELECT + ' WHERE id = $1',
+        [payment.memberId]
+      );
+      return { payment, member: memberRows.rows[0] ?? null };
+    }
+
+    // 3. Mark as verified
+    await client.query(
+      `UPDATE payments
+       SET verification_status = 'Verified', verified_by = $1, verified_at = $2
+       WHERE id = $3`,
+      [verifiedBy, verifiedAt, paymentId]
+    );
+
+    // 4. Lock + update member balance
+    const memberRows = await client.query<Member>(
+      MEMBER_SELECT + ' WHERE id = $1 FOR UPDATE',
+      [payment.memberId]
+    );
+    const member = memberRows.rows[0];
+    if (member) {
+      const newPaid    = Number(member.amountPaid)  + Number(payment.amount);
+      const newBalance = Math.max(0, Number(member.planCost) - newPaid);
+      await client.query(
+        `UPDATE members SET amount_paid = $1, remaining_balance = $2 WHERE id = $3`,
+        [newPaid, newBalance, member.id]
+      );
+    }
+
+    // 5. Read back final state
+    const updatedPayRows = await client.query<Payment>(
+      PAYMENT_SELECT + ' WHERE id = $1',
+      [paymentId]
+    );
+    const updatedMemberRows = member
+      ? await client.query<Member>(MEMBER_SELECT + ' WHERE id = $1', [member.id])
+      : { rows: [] as Member[] };
+
+    return {
+      payment: updatedPayRows.rows[0] ?? null,
+      member:  updatedMemberRows.rows[0] ?? null,
+    };
+  });
+}
+
+/**
+ * Deletes a payment and — if it was Verified — atomically subtracts its
+ * amount from the member's amountPaid / remainingBalance.
+ */
+export async function deletePaymentWithBalanceRecalc(
+  paymentId: string
+): Promise<{ deleted: Payment | null; member: Member | null }> {
+  return withTransaction(async (client) => {
+    // 1. Fetch + lock the payment
+    const payRows = await client.query<Payment>(
+      PAYMENT_SELECT + ' WHERE id = $1 FOR UPDATE',
+      [paymentId]
+    );
+    const payment = payRows.rows[0];
+    if (!payment) return { deleted: null, member: null };
+
+    // 2. Delete it
+    await client.query('DELETE FROM payments WHERE id = $1', [paymentId]);
+
+    // 3. If verified, recalculate the member balance
+    if (payment.verificationStatus !== 'Verified') {
+      return { deleted: payment, member: null };
+    }
+
+    const memberRows = await client.query<Member>(
+      MEMBER_SELECT + ' WHERE id = $1 FOR UPDATE',
+      [payment.memberId]
+    );
+    const member = memberRows.rows[0];
+    if (!member) return { deleted: payment, member: null };
+
+    const newPaid    = Math.max(0, Number(member.amountPaid) - Number(payment.amount));
+    const newBalance = Math.max(0, Number(member.planCost) - newPaid);
+    await client.query(
+      `UPDATE members SET amount_paid = $1, remaining_balance = $2 WHERE id = $3`,
+      [newPaid, newBalance, member.id]
+    );
+
+    const updatedMemberRows = await client.query<Member>(
+      MEMBER_SELECT + ' WHERE id = $1',
+      [member.id]
+    );
+    return { deleted: payment, member: updatedMemberRows.rows[0] ?? null };
+  });
 }

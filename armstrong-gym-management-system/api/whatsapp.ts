@@ -2,11 +2,12 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { applyCors } from '../src/apilib/cors';
 import { authenticateRequest } from '../src/apilib/auth';
 import { readBody, nowTimestamp } from '../src/apilib/helpers';
-import { getMemberById, getMembers, getReminderLogs, insertReminderLog, nextLogId } from '../src/apilib/db';
+import { getMemberById, getMembers, getReminderLogs, insertReminderLog, nextLogId, ensureDb } from '../src/apilib/db';
 import type { ReminderLog } from '../src/types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req as any, res as any)) return;
+  await ensureDb();
 
   const payload = authenticateRequest(req as any);
   if (!payload) return res.status(401).json({ error: 'Unauthorized' });

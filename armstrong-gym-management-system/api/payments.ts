@@ -3,39 +3,51 @@ import { applyCors } from '../src/apilib/cors';
 import { authenticateRequest } from '../src/apilib/auth';
 import { readBody, nowTimestamp } from '../src/apilib/helpers';
 import {
-  getPayments, insertPayment, nextPaymentId,
-  getPaymentById, deletePaymentRecord, updatePaymentRecord,
-  getMemberById, updateMemberRecord,
-  getMembers, insertReminderLog, nextLogId,
+  getPayments, nextPaymentId,
+  getPaymentById,
+  getMemberById,
+  getMembers, insertReminderLog, nextLogId, ensureDb,
+  getPaymentsPaged,
+  // transactional helpers — single DB round-trip per operation
+  insertPaymentWithBalanceUpdate,
+  verifyPaymentWithBalanceUpdate,
+  deletePaymentWithBalanceRecalc,
 } from '../src/apilib/db';
 import type { Payment, ReminderLog } from '../src/types';
+import { checkRateLimit, pruneExpiredEntries, getClientIp } from '../src/apilib/rateLimit';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req as any, res as any)) return;
+  await ensureDb();
+  if (applyCors(req as any, res as any)) return;
+
+  pruneExpiredEntries();
 
   // _route and _id injected by vercel.json rewrites
   const route = (req.query._route as string) || '';
-  const id = (req.query._id as string) || '';
+  const id    = (req.query._id    as string) || '';
 
   // ── POST /api/payments/submit-bill  (public — no auth) ───────────────────────
   if (route === 'submit-bill' && req.method === 'POST') {
+    const ip = getClientIp(req.headers as any);
+    const rl = checkRateLimit(`submit-bill:${ip}`, 20, 10 * 60 * 1000);
+    if (rl.limited) {
+      res.setHeader('Retry-After', String(rl.retryAfterSecs));
+      return res.status(429).json({ success: false, error: 'Too many submissions. Please try again shortly.' });
+    }
     try {
-      const { memberQuery, amount, paymentMethod, transactionId, billUrl, notes }
-        = await readBody(req as any);
-
-      const query = (memberQuery || '').trim().toLowerCase();
-      if (!query) return res.status(400).json({ success: false, error: 'memberQuery is required' });
+      const { memberQuery, amount, paymentMethod, transactionId, billUrl, notes } = await readBody(req as any);
+      const q = (memberQuery || '').trim().toLowerCase();
+      if (!q) return res.status(400).json({ success: false, error: 'memberQuery is required' });
 
       const members = await getMembers();
-      const member = members.find(
+      const member  = members.find(
         (m) =>
-          m.id.toLowerCase() === query ||
-          m.phone.replace(/\s/g, '').includes(query.replace(/\s/g, '')) ||
-          m.name.toLowerCase().includes(query)
+          m.id.toLowerCase() === q ||
+          m.phone.replace(/\s/g, '').includes(q.replace(/\s/g, '')) ||
+          m.name.toLowerCase().includes(q)
       );
-      if (!member) {
-        return res.status(404).json({ success: false, error: 'Member ID, phone, or name not found in system' });
-      }
+      if (!member) return res.status(404).json({ success: false, error: 'Member ID, phone, or name not found in system' });
 
       const paymentAmount = Number(amount);
       if (isNaN(paymentAmount) || paymentAmount <= 0) {
@@ -43,7 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const payId = await nextPaymentId();
-      const now = nowTimestamp();
+      const now   = nowTimestamp();
       const newPayment: Payment = {
         id: payId,
         memberId: member.id,
@@ -56,7 +68,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         verificationStatus: 'Pending Verification',
         notes: notes || 'Submitted via Member Bill Upload Portal',
       };
-      await insertPayment(newPayment);
+
+      // Public submissions are always Pending — no balance change needed
+      await insertPaymentWithBalanceUpdate(newPayment, false);
 
       return res.status(201).json({
         success: true,
@@ -76,36 +90,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ── POST /api/payments/verify/:id ─────────────────────────────────────────────
   if (route === 'verify' && id && req.method === 'POST') {
     try {
-      const payment = await getPaymentById(id);
-      if (!payment) return res.status(404).json({ error: 'Payment record not found' });
+      // Pre-check: payment must exist so we can build the receipt message
+      const paymentBefore = await getPaymentById(id);
+      if (!paymentBefore) return res.status(404).json({ error: 'Payment record not found' });
 
-      const member = await getMemberById(payment.memberId);
-      if (!member) return res.status(404).json({ error: 'Member associated with payment not found' });
+      const memberBefore = await getMemberById(paymentBefore.memberId);
+      if (!memberBefore) return res.status(404).json({ error: 'Member associated with payment not found' });
 
       const now = nowTimestamp();
-      if (payment.verificationStatus !== 'Verified') {
-        const newPaid = Number(member.amountPaid) + Number(payment.amount);
-        const newBalance = Math.max(0, Number(member.planCost) - newPaid);
-        await updateMemberRecord(member.id, { amountPaid: newPaid, remainingBalance: newBalance });
-      }
 
-      await updatePaymentRecord(id, {
-        verificationStatus: 'Verified',
-        verifiedBy: 'Armstrong Admin',
-        verifiedAt: now,
-      });
+      // Atomic verify + balance update
+      const { payment: updatedPayment, member: updatedMember } =
+        await verifyPaymentWithBalanceUpdate(id, 'Armstrong Admin', now);
 
-      const updatedPayment = await getPaymentById(id);
-      const updatedMember = await getMemberById(payment.memberId);
-
-      const receiptMsg = `Dear ${member.name}, your transaction payment of ₹${payment.amount} (Ref: ${payment.transactionId || payment.id}) has been VERIFIED & UPDATED on the Armstrong Gym Portal! Remaining Balance: ₹${updatedMember?.remainingBalance ?? 0}. Thank you!`;
+      const receiptMsg = `Dear ${memberBefore.name}, your transaction payment of ₹${paymentBefore.amount} (Ref: ${paymentBefore.transactionId || paymentBefore.id}) has been VERIFIED & UPDATED on the Armstrong Gym Portal! Remaining Balance: ₹${updatedMember?.remainingBalance ?? 0}. Thank you!`;
 
       const logId = await nextLogId();
       const log: ReminderLog = {
         id: logId,
-        memberId: member.id,
-        memberName: member.name,
-        phone: member.phone,
+        memberId: memberBefore.id,
+        memberName: memberBefore.name,
+        phone: memberBefore.phone,
         type: 'Custom',
         message: receiptMsg,
         sentAt: now,
@@ -113,15 +118,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
       await insertReminderLog(log);
 
-      const whatsappUrl = `https://wa.me/${member.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(receiptMsg)}`;
+      const whatsappUrl = `https://wa.me/${memberBefore.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(receiptMsg)}`;
 
-      return res.status(200).json({
-        success: true,
-        payment: updatedPayment,
-        member: updatedMember,
-        receiptMsg,
-        whatsappUrl,
-      });
+      return res.status(200).json({ success: true, payment: updatedPayment, member: updatedMember, receiptMsg, whatsappUrl });
     } catch (err: any) {
       console.error('[payments/verify/:id]', err);
       return res.status(500).json({ error: 'Internal server error' });
@@ -132,6 +131,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!id && !route) {
     if (req.method === 'GET') {
       try {
+        const pageParam     = req.query.page     as string | undefined;
+        const pageSizeParam = req.query.pageSize as string | undefined;
+        if (pageParam) {
+          const page     = Math.max(1, parseInt(pageParam, 10) || 1);
+          const pageSize = Math.min(200, Math.max(1, parseInt(pageSizeParam || '50', 10)));
+          return res.status(200).json(await getPaymentsPaged(page, pageSize));
+        }
         return res.status(200).json(await getPayments());
       } catch (err: any) {
         console.error('[payments GET]', err);
@@ -152,9 +158,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(400).json({ error: 'Invalid payment amount' });
         }
 
-        const now = nowTimestamp();
+        const now    = nowTimestamp();
         const status = verificationStatus || 'Verified';
-        const payId = await nextPaymentId();
+        const payId  = await nextPaymentId();
 
         const newPayment: Payment = {
           id: payId,
@@ -166,24 +172,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           transactionId: transactionId || `TXN-${Date.now().toString().slice(-6)}`,
           billUrl: billUrl || '',
           verificationStatus: status,
-          verifiedBy: status === 'Verified' ? 'Armstrong Admin' : undefined,
-          verifiedAt: status === 'Verified' ? now : undefined,
+          verifiedBy:  status === 'Verified' ? 'Armstrong Admin' : undefined,
+          verifiedAt:  status === 'Verified' ? now               : undefined,
           notes: notes || '',
         };
 
-        await insertPayment(newPayment);
+        // Single atomic transaction: insert payment + update balance if verified
+        const { member: updatedMember } =
+          await insertPaymentWithBalanceUpdate(newPayment, status === 'Verified');
 
-        let updatedMember = member;
-        if (status === 'Verified') {
-          const newPaid = Number(member.amountPaid) + paymentAmount;
-          const newBalance = Math.max(0, Number(member.planCost) - newPaid);
-          updatedMember = (await updateMemberRecord(member.id, {
-            amountPaid: newPaid,
-            remainingBalance: newBalance,
-          })) ?? member;
-        }
-
-        return res.status(201).json({ payment: newPayment, member: updatedMember });
+        return res.status(201).json({ payment: newPayment, member: updatedMember ?? member });
       } catch (err: any) {
         console.error('[payments POST]', err);
         return res.status(500).json({ error: 'Internal server error' });
@@ -197,16 +195,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (id && !route) {
     if (req.method === 'DELETE') {
       try {
-        const payment = await deletePaymentRecord(id);
-        if (!payment) return res.status(404).json({ error: 'Payment record not found' });
-
-        const member = await getMemberById(payment.memberId);
-        if (member && payment.verificationStatus === 'Verified') {
-          const newPaid = Math.max(0, Number(member.amountPaid) - Number(payment.amount));
-          const newBalance = Math.max(0, Number(member.planCost) - newPaid);
-          await updateMemberRecord(member.id, { amountPaid: newPaid, remainingBalance: newBalance });
-        }
-
+        // Atomic delete + balance recalculation in one transaction
+        const { deleted } = await deletePaymentWithBalanceRecalc(id);
+        if (!deleted) return res.status(404).json({ error: 'Payment record not found' });
         return res.status(200).json({ success: true, message: 'Payment deleted & member balance recalculated' });
       } catch (err: any) {
         console.error('[payments/:id DELETE]', err);

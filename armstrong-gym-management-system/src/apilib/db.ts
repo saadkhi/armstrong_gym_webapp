@@ -7,6 +7,7 @@ export {
   createTables,
   seedDbIfNeeded,
   ensureDb,
+  getRequiredCronSecret,
   // members
   getMembers,
   getMemberById,
@@ -47,4 +48,15 @@ export {
   // admin
   getAdminByEmail,
   getAdminById,
+  // SQL-aggregate stats
+  getStatsFromDb,
+  // paginated list helpers
+  getMembersPaged,
+  getPaymentsPaged,
+  getAttendancePaged,
+  getExpensesPaged,
+  // transactional payment helpers
+  insertPaymentWithBalanceUpdate,
+  verifyPaymentWithBalanceUpdate,
+  deletePaymentWithBalanceRecalc,
 } from '../db';

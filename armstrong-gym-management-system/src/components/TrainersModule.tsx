@@ -17,6 +17,7 @@ import {
 import { ConfirmDialog } from './ConfirmDialog';
 import { Trainer } from '../types';
 import toast from 'react-hot-toast';
+import { uploadImage } from '../api/client';
 
 interface TrainersModuleProps {
   trainers: Trainer[];
@@ -51,15 +52,26 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
 
   // Two separate hidden inputs so capture attribute is static per button
   const photoGalleryRef = useRef<HTMLInputElement>(null);
-  const photoCameraRef = useRef<HTMLInputElement>(null);
+  const photoCameraRef  = useRef<HTMLInputElement>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
-  const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      const result = ev.target?.result as string;
-      if (result) setFormPhotoUrl(result);
+    reader.onload = async (ev) => {
+      const dataUri = ev.target?.result as string;
+      if (!dataUri) return;
+      setFormPhotoUrl(dataUri); // instant preview
+      setIsUploadingPhoto(true);
+      try {
+        const url = await uploadImage(dataUri, 'trainers');
+        setFormPhotoUrl(url);
+      } catch {
+        toast.error('Photo upload failed — photo will be stored locally');
+      } finally {
+        setIsUploadingPhoto(false);
+      }
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -459,9 +471,19 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
                         <UserCircle2 className="w-10 h-10 text-white/20 group-hover:text-[#E51924]/50 transition-colors" />
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Camera className="w-6 h-6 text-white" />
-                    </div>
+                    {isUploadingPhoto && (
+                      <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3V4a10 10 0 100 20v-2a8 8 0 01-8-8z" />
+                        </svg>
+                      </div>
+                    )}
+                    {!isUploadingPhoto && (
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Camera className="w-6 h-6 text-white" />
+                      </div>
+                    )}
                   </div>
 
                   {/* Buttons */}
@@ -506,9 +528,10 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#E51924] text-white text-xs font-extrabold hover:bg-red-600 transition-all shadow-lg shadow-red-500/20"
+                  disabled={isUploadingPhoto}
+                  className="px-5 py-2 rounded-xl bg-[#E51924] text-white text-xs font-extrabold hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingTrainer ? 'Save Changes' : 'Register Coach'}
+                  {isUploadingPhoto ? 'Uploading photo…' : editingTrainer ? 'Save Changes' : 'Register Coach'}
                 </button>
               </div>
             </form>

@@ -2,11 +2,12 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { applyCors } from '../src/apilib/cors';
 import { authenticateRequest } from '../src/apilib/auth';
 import { readBody, todayStr } from '../src/apilib/helpers';
-import { getTrainers, insertTrainer, nextTrainerId, getMembers, updateTrainerRecord, deleteTrainerRecord } from '../src/apilib/db';
+import { getTrainers, insertTrainer, nextTrainerId, getMembers, updateTrainerRecord, deleteTrainerRecord, ensureDb } from '../src/apilib/db';
 import type { Trainer } from '../src/types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req as any, res as any)) return;
+  await ensureDb();
 
   // _id injected by vercel.json rewrite
   const id = (req.query._id as string) || '';

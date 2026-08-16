@@ -2,11 +2,12 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { applyCors } from '../src/apilib/cors';
 import { authenticateRequest } from '../src/apilib/auth';
 import { readBody, todayStr } from '../src/apilib/helpers';
-import { getExpenses, insertExpense, nextExpenseId, deleteExpenseRecord } from '../src/apilib/db';
+import { getExpenses, insertExpense, nextExpenseId, deleteExpenseRecord, ensureDb, getExpensesPaged } from '../src/apilib/db';
 import type { Expense } from '../src/types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req as any, res as any)) return;
+  await ensureDb();
 
   const payload = authenticateRequest(req as any);
   if (!payload) return res.status(401).json({ error: 'Unauthorized' });
@@ -18,6 +19,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!id) {
     if (req.method === 'GET') {
       try {
+        const pageParam = req.query.page as string | undefined;
+        const pageSizeParam = req.query.pageSize as string | undefined;
+        if (pageParam) {
+          const page     = Math.max(1, parseInt(pageParam, 10) || 1);
+          const pageSize = Math.min(200, Math.max(1, parseInt(pageSizeParam || '50', 10)));
+          return res.status(200).json(await getExpensesPaged(page, pageSize));
+        }
         return res.status(200).json(await getExpenses());
       } catch (err: any) {
         console.error('[expenses GET]', err);

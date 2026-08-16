@@ -28,7 +28,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [twilioWhatsappFrom, setTwilioWhatsappFrom] = useState(
     settings?.twilioWhatsappFrom || 'whatsapp:+14155238886'
   );
-  const [cronSecret, setCronSecret] = useState(settings?.cronSecret || 'armstrong-secret-cron-2026');
+  const [cronSecret, setCronSecret] = useState(settings?.cronSecret || '');
 
   useEffect(() => {
     if (settings) {

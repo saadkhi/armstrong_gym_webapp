@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Lock, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Logo } from './Logo';
 
@@ -12,8 +12,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   onLoginSuccess,
   onGoToPortfolio,
 }) => {
-  const [email, setEmail] = useState('admin@armstrong.gym');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,12 +98,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </button>
         </form>
 
-        <div className="pt-2 border-t border-white/10 text-center space-y-2">
-          <p className="text-[11px] text-white/40 font-mono">
-            Demo Login: <strong className="text-white">admin@armstrong.gym</strong> /{' '}
-            <strong className="text-white">admin123</strong>
-          </p>
-
+        <div className="pt-2 border-t border-white/10 text-center">
           <button
             onClick={onGoToPortfolio}
             className="text-xs accent-text hover:underline inline-flex items-center gap-1 font-bold uppercase tracking-wider"

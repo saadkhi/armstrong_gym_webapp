@@ -1,31 +1,15 @@
 import React, { useState, useRef } from 'react';
 import {
-  Users,
-  UserPlus,
-  Search,
-  Filter,
-  QrCode,
-  CreditCard,
-  Trash2,
-  Edit,
-  Eye,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  Phone,
-  Mail,
-  Calendar,
-  X,
-  Printer,
-  Sparkles,
-  Camera,
-  Upload,
-  UserCircle2,
+  Users, UserPlus, Search, Filter, QrCode, CreditCard, Trash2, Edit, Eye,
+  CheckCircle2, AlertTriangle, XCircle, Phone, Mail, Calendar, X,
+  Printer, Sparkles, Camera, Upload, UserCircle2,
 } from 'lucide-react';
 import { Member, MembershipPlanType } from '../types';
 import toast from 'react-hot-toast';
 import logoImg from '../assets/images/logo.jpg';
 import { ConfirmDialog } from './ConfirmDialog';
+import { uploadImage } from '../api/client';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface MembersModuleProps {
   members: Member[];
@@ -62,19 +46,36 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
   );
   const [formNotes, setFormNotes] = useState('');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  // Focus trap for the add/edit modal
+  const modalRef = useFocusTrap<HTMLDivElement>(showAddModal);
 
   // Photo file input refs — separate inputs so capture attribute is static
   const photoInputRef = useRef<HTMLInputElement>(null);       // gallery
   const photoCameraRef = useRef<HTMLInputElement>(null);      // camera
 
-  // Convert selected file to base64 data URI
-  const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload selected file to Cloudinary; fall back to base64 if unavailable
+  const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Read as data-URI first so we always have a local preview immediately
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      const result = ev.target?.result as string;
-      if (result) setFormPhotoUrl(result);
+    reader.onload = async (ev) => {
+      const dataUri = ev.target?.result as string;
+      if (!dataUri) return;
+      setFormPhotoUrl(dataUri); // show preview instantly
+      // Then upload to Cloudinary in the background
+      setIsUploadingPhoto(true);
+      try {
+        const url = await uploadImage(dataUri, 'members');
+        setFormPhotoUrl(url);
+      } catch {
+        // keep data-URI as fallback — toast is informational only
+        toast.error('Photo upload failed — photo will be stored locally');
+      } finally {
+        setIsUploadingPhoto(false);
+      }
     };
     reader.readAsDataURL(file);
     // Reset so the same file can be re-selected
@@ -350,65 +351,38 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
 
       {/* Add / Edit Member Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#0D0D0D] border border-white/15 rounded-3xl w-full max-w-lg p-6 space-y-6 shadow-2xl relative my-8">
-            <button
-              onClick={closeModal}
-              className="absolute top-5 right-5 text-white/50 hover:text-white"
-            >
-              <X className="w-5 h-5" />
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="member-modal-title">
+          <div ref={modalRef} className="bg-[#0D0D0D] border border-white/15 rounded-3xl w-full max-w-lg p-6 space-y-6 shadow-2xl relative my-8">
+            <button onClick={closeModal} aria-label="Close modal" className="absolute top-5 right-5 text-white/50 hover:text-white">
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
 
             <div>
-              <h2 className="text-lg font-black text-white">
+              <h2 id="member-modal-title" className="text-lg font-black text-white">
                 {editingMember ? `Edit Member: ${editingMember.id}` : 'Register New Member'}
               </h2>
               <p className="text-xs text-white/50">
-                {editingMember
-                  ? 'Update membership plan, contact, or photo.'
-                  : 'Auto ID (GM-XXX) will be assigned automatically.'}
+                {editingMember ? 'Update membership plan, contact, or photo.' : 'Auto ID (GM-XXX) will be assigned automatically.'}
               </p>
             </div>
 
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-white/80 mb-1">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Tariq Mahmood"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
-                />
+                <label htmlFor="member-name" className="block text-xs font-semibold text-white/80 mb-1">Full Name *</label>
+                <input id="member-name" type="text" required placeholder="e.g. Tariq Mahmood" value={formName} onChange={(e) => setFormName(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-white/80 mb-1">
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="+92 300 1234567"
-                    value={formPhone}
-                    onChange={(e) => setFormPhone(e.target.value)}
-                    className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
-                  />
+                  <label htmlFor="member-phone" className="block text-xs font-semibold text-white/80 mb-1">Phone Number *</label>
+                  <input id="member-phone" type="tel" required placeholder="+92 300 1234567" value={formPhone} onChange={(e) => setFormPhone(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]" />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-semibold text-white/80 mb-1">
-                    Gender
-                  </label>
-                  <select
-                    value={formGender}
-                    onChange={(e) => setFormGender(e.target.value as any)}
-                    className="w-full px-3.5 py-2 text-xs bg-[#0D0D0D] text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
-                  >
+                  <label htmlFor="member-gender" className="block text-xs font-semibold text-white/80 mb-1">Gender</label>
+                  <select id="member-gender" value={formGender} onChange={(e) => setFormGender(e.target.value as any)}
+                    className="w-full px-3.5 py-2 text-xs bg-[#0D0D0D] text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]">
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                     <option value="Other">Other</option>
@@ -417,130 +391,75 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-white/80 mb-1">
-                  Membership Plan Type
-                </label>
-                <select
-                  value={formPlanType}
-                  onChange={(e) => handlePlanTypeChange(e.target.value as MembershipPlanType)}
-                  className="w-full px-3.5 py-2 text-xs bg-[#0D0D0D] text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
-                >
-                  <option value="Monthly">Monthly Pass (1 Month - Rs. 2,500)</option>
-                  <option value="Quarterly">Quarterly Beast (3 Months - Rs. 6,000)</option>
-                  <option value="Half-Yearly">Half-Yearly Elite (6 Months - Rs. 10,000)</option>
-                  <option value="Yearly">Yearly Champion (12 Months - Rs. 18,000)</option>
+                <label htmlFor="member-plan" className="block text-xs font-semibold text-white/80 mb-1">Membership Plan Type</label>
+                <select id="member-plan" value={formPlanType} onChange={(e) => handlePlanTypeChange(e.target.value as MembershipPlanType)}
+                  className="w-full px-3.5 py-2 text-xs bg-[#0D0D0D] text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]">
+                  <option value="Monthly">Monthly Pass (1 Month — ₹2,500)</option>
+                  <option value="Quarterly">Quarterly Beast (3 Months — ₹6,000)</option>
+                  <option value="Half-Yearly">Half-Yearly Elite (6 Months — ₹10,000)</option>
+                  <option value="Yearly">Yearly Champion (12 Months — ₹18,000)</option>
                 </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-white/80 mb-1">
-                    Total Plan Cost (Rs.)
-                  </label>
-                  <input
-                    type="number"
-                    value={formPlanCost}
-                    onChange={(e) => setFormPlanCost(Number(e.target.value))}
-                    className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
-                  />
+                  <label htmlFor="member-plan-cost" className="block text-xs font-semibold text-white/80 mb-1">Total Plan Cost (₹)</label>
+                  <input id="member-plan-cost" type="number" value={formPlanCost} onChange={(e) => setFormPlanCost(Number(e.target.value))}
+                    className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]" />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-semibold text-white/80 mb-1">
-                    Initial Payment Paid (Rs.)
-                  </label>
-                  <input
-                    type="number"
-                    value={formAmountPaid}
-                    onChange={(e) => setFormAmountPaid(Number(e.target.value))}
-                    className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
-                  />
+                  <label htmlFor="member-amount-paid" className="block text-xs font-semibold text-white/80 mb-1">Initial Payment Paid (₹)</label>
+                  <input id="member-amount-paid" type="number" value={formAmountPaid} onChange={(e) => setFormAmountPaid(Number(e.target.value))}
+                    className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-white/80 mb-1">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={formStartDate}
-                  onChange={(e) => setFormStartDate(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
-                />
+                <label htmlFor="member-start-date" className="block text-xs font-semibold text-white/80 mb-1">Start Date</label>
+                <input id="member-start-date" type="date" value={formStartDate} onChange={(e) => setFormStartDate(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]" />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-white/80 mb-1">
-                  Member Photo
-                </label>
-                {/* Hidden input: gallery picker (no capture) */}
-                <input
-                  ref={photoInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handlePhotoFileChange}
-                />
-                {/* Hidden input: camera only (capture="environment") */}
-                <input
-                  ref={photoCameraRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="hidden"
-                  onChange={handlePhotoFileChange}
-                />
+                <label className="block text-xs font-semibold text-white/80 mb-1">Member Photo</label>
+                <input ref={photoInputRef} id="member-photo-gallery" type="file" accept="image/*" className="hidden" onChange={handlePhotoFileChange} />
+                <input ref={photoCameraRef} id="member-photo-camera" type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoFileChange} />
                 <div className="flex items-center gap-4">
-                  {/* Preview */}
-                  <div
-                    onClick={() => photoInputRef.current?.click()}
+                  <div onClick={() => photoInputRef.current?.click()}
                     className="relative w-20 h-20 rounded-2xl overflow-hidden border-2 border-dashed border-white/20 hover:border-[#E51924]/60 cursor-pointer flex-shrink-0 transition-all group bg-white/5"
-                    title="Click to upload or take photo"
-                  >
-                    {formPhotoUrl ? (
-                      <img
-                        src={formPhotoUrl}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
+                    title="Click to upload or take photo" role="button" aria-label="Upload member photo">
+                    {formPhotoUrl ? <img src={formPhotoUrl} alt="Member photo preview" className="w-full h-full object-cover" /> : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <UserCircle2 className="w-10 h-10 text-white/20 group-hover:text-[#E51924]/50 transition-colors" />
+                        <UserCircle2 className="w-10 h-10 text-white/20 group-hover:text-[#E51924]/50 transition-colors" aria-hidden="true" />
                       </div>
                     )}
-                    {/* Overlay on hover */}
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Camera className="w-6 h-6 text-white" />
-                    </div>
+                    {isUploadingPhoto && (
+                      <div className="absolute inset-0 bg-black/70 flex items-center justify-center" aria-label="Uploading photo">
+                        <svg className="w-6 h-6 text-white animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3V4a10 10 0 100 20v-2a8 8 0 01-8-8z" />
+                        </svg>
+                      </div>
+                    )}
+                    {!isUploadingPhoto && (
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Camera className="w-6 h-6 text-white" aria-hidden="true" />
+                      </div>
+                    )}
                   </div>
-
-                  {/* Action buttons */}
                   <div className="flex-1 flex flex-col gap-2">
-                    <button
-                      type="button"
-                      onClick={() => photoInputRef.current?.click()}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#E51924]/40 text-white/70 hover:text-white text-xs font-semibold transition-all"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      Upload from Gallery
+                    <button type="button" onClick={() => photoInputRef.current?.click()}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#E51924]/40 text-white/70 hover:text-white text-xs font-semibold transition-all">
+                      <Upload className="w-3.5 h-3.5" aria-hidden="true" /> Upload from Gallery
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => photoCameraRef.current?.click()}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#E51924]/40 text-white/70 hover:text-white text-xs font-semibold transition-all"
-                    >
-                      <Camera className="w-3.5 h-3.5" />
-                      Take a Photo
+                    <button type="button" onClick={() => photoCameraRef.current?.click()}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#E51924]/40 text-white/70 hover:text-white text-xs font-semibold transition-all">
+                      <Camera className="w-3.5 h-3.5" aria-hidden="true" /> Take a Photo
                     </button>
                     {formPhotoUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setFormPhotoUrl('')}
-                        className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl bg-white/3 hover:bg-red-500/10 border border-white/8 hover:border-red-500/30 text-white/40 hover:text-red-400 text-xs font-semibold transition-all"
-                      >
-                        <X className="w-3 h-3" />
-                        Remove Photo
+                      <button type="button" onClick={() => setFormPhotoUrl('')}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl bg-white/3 hover:bg-red-500/10 border border-white/8 hover:border-red-500/30 text-white/40 hover:text-red-400 text-xs font-semibold transition-all">
+                        <X className="w-3 h-3" aria-hidden="true" /> Remove Photo
                       </button>
                     )}
                   </div>
@@ -548,18 +467,10 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="px-4 py-2 rounded-xl bg-white/10 text-white/70 text-xs font-bold hover:bg-white/20"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#E51924] text-white text-xs font-extrabold hover:bg-red-600 transition-all shadow-lg shadow-red-500/20"
-                >
-                  {editingMember ? 'Save Changes' : 'Register Member'}
+                <button type="button" onClick={closeModal} className="px-4 py-2 rounded-xl bg-white/10 text-white/70 text-xs font-bold hover:bg-white/20">Cancel</button>
+                <button type="submit" disabled={isUploadingPhoto}
+                  className="px-5 py-2 rounded-xl bg-[#E51924] text-white text-xs font-extrabold hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                  {isUploadingPhoto ? 'Uploading photo…' : editingMember ? 'Save Changes' : 'Register Member'}
                 </button>
               </div>
             </form>

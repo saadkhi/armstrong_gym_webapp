@@ -47,3 +47,69 @@
 .admin-surface-alt   { background-color: #0D0D0D; }
 .admin-border        { border-color: rgba(255,255,255,0.08); }
 .admin-border-accent { border-color: rgba(229, 25, 36, 0.35); }
+
+/* ── Focus-visible ring (task 13) ───────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid #E51924;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── @media print styles (task 8) ───────────────────────────────────── */
+@media print {
+  /* Hide everything that shouldn't print */
+  nav, aside, header,
+  .no-print,
+  [data-no-print],
+  button:not(.print-btn) { display: none !important; }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 12pt;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Print surface: white bg, black text */
+  .print-area {
+    display: block !important;
+    background: #fff !important;
+    color: #000 !important;
+    padding: 16pt;
+    max-width: 100%;
+  }
+
+  /* Tables */
+  table { border-collapse: collapse; width: 100%; }
+  th, td {
+    border: 1px solid #ccc;
+    padding: 6pt 8pt;
+    text-align: left;
+    font-size: 10pt;
+    color: #000;
+  }
+  thead { background: #f5f5f5 !important; }
+
+  /* KPI summary cards */
+  .print-kpi {
+    display: inline-block;
+    width: 30%;
+    border: 1px solid #ccc;
+    padding: 8pt;
+    margin-right: 2%;
+    vertical-align: top;
+    page-break-inside: avoid;
+  }
+
+  /* Page break helpers */
+  .page-break { page-break-after: always; }
+  .no-page-break { page-break-inside: avoid; }
+
+  /* Show the printable report header */
+  .print-header { display: block !important; }
+
+  /* Force readable colours for glass/dark cards */
+  .glass-card { background: #fff !important; border: 1px solid #ccc !important; }
+  * { color: #000 !important; -webkit-print-color-adjust: exact; }
+}

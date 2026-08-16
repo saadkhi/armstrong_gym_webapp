@@ -4,11 +4,13 @@ import { authenticateRequest } from '../src/apilib/auth';
 import { readBody, calcMemberStatus, calcExpiry, planDuration, nowTimestamp, todayStr } from '../src/apilib/helpers';
 import {
   getMembers, getMemberById, insertMember, updateMemberRecord, deleteMemberRecord,
-  nextMemberId, insertPayment, nextPaymentId,
+  nextMemberId, insertPayment, nextPaymentId, getMembersPaged, ensureDb,
 } from '../src/apilib/db';
 import type { Member, Payment } from '../src/types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (applyCors(req as any, res as any)) return;
+  await ensureDb();
   if (applyCors(req as any, res as any)) return;
 
   const payload = authenticateRequest(req as any);
@@ -21,6 +23,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!id) {
     if (req.method === 'GET') {
       try {
+        const pageParam = req.query.page as string | undefined;
+        const pageSizeParam = req.query.pageSize as string | undefined;
+
+        if (pageParam) {
+          // Paginated path
+          const page     = Math.max(1, parseInt(pageParam, 10) || 1);
+          const pageSize = Math.min(200, Math.max(1, parseInt(pageSizeParam || '50', 10)));
+          const result   = await getMembersPaged(page, pageSize);
+          result.data    = result.data.map((m) => ({ ...m, status: calcMemberStatus(m.expiryDate) }));
+          // Lazily sync changed statuses
+          const original = await getMembers(); // only for diff — still one query
+          void Promise.allSettled(
+            result.data
+              .filter((m) => {
+                const orig = original.find((o) => o.id === m.id);
+                return orig && orig.status !== m.status;
+              })
+              .map((m) => updateMemberRecord(m.id, { status: m.status }))
+          );
+          return res.status(200).json(result);
+        }
+
+        // Unpaged (legacy) — returns plain array for backward-compat
         const members = await getMembers();
         const updated = members.map((m) => ({ ...m, status: calcMemberStatus(m.expiryDate) }));
         void Promise.allSettled(
