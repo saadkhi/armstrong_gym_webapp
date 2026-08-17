@@ -143,11 +143,8 @@ async function startServer() {
 
   const app = express();
 
-  // ─── Sentry request handler (must be first middleware) ────────────────────
-  if (process.env.SENTRY_DSN) {
-    app.use(Sentry.Handlers.requestHandler());
-    app.use(Sentry.Handlers.tracingHandler());
-  }
+  // ─── Sentry (v8 automatic instrumentation — no request middleware needed) ──
+  // Sentry.init() already instruments Express automatically when SENTRY_DSN is set.
 
   // ─── CORS ─────────────────────────────────────────────────────────────────
   // Build allowlist from env var (comma-separated). Localhost is always
@@ -698,7 +695,7 @@ async function startServer() {
 
   // ─── Sentry error handler (must be before any other error middleware) ──────
   if (process.env.SENTRY_DSN) {
-    app.use(Sentry.Handlers.errorHandler());
+    Sentry.setupExpressErrorHandler(app);
   }
 
   // ─── Generic error handler ────────────────────────────────────────────────

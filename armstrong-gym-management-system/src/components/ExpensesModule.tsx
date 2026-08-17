@@ -1,17 +1,9 @@
 import React, { useState } from 'react';
-import {
-  Receipt,
-  PlusCircle,
-  Trash2,
-  Search,
-  IndianRupee,
-  X,
-  Calendar,
-  PieChart as PieIcon,
-} from 'lucide-react';
+import { Receipt, PlusCircle, Trash2, Search, IndianRupee, X, Calendar, PieChart as PieIcon } from 'lucide-react';
 import { Expense, ExpenseCategory } from '../types';
 import toast from 'react-hot-toast';
 import { ConfirmDialog } from './ConfirmDialog';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface ExpensesModuleProps {
   expenses: Expense[];
@@ -27,6 +19,9 @@ export const ExpensesModule: React.FC<ExpensesModuleProps> = ({
   const [showAddModal, setShowAddModal] = useState(false);
   const [search, setSearch] = useState('');
   const [confirmTarget, setConfirmTarget] = useState<Expense | null>(null);
+
+  // Focus trap for the add modal
+  const modalRef = useFocusTrap<HTMLDivElement>(showAddModal);
 
   // Form states
   const [formTitle, setFormTitle] = useState('');
@@ -113,7 +108,7 @@ export const ExpensesModule: React.FC<ExpensesModuleProps> = ({
         <div className="flex items-baseline gap-2 bg-black/60 px-4 py-2 rounded-xl border border-white/10">
           <span className="text-xs text-white/50 font-medium">Total Filtered Outgoings:</span>
           <span className="text-lg font-black text-rose-400 font-mono">
-            Rs. {totalExpenseSum.toLocaleString('en-PK')}
+            ₹{totalExpenseSum.toLocaleString('en-PK')}
           </span>
         </div>
       </div>
@@ -152,7 +147,7 @@ export const ExpensesModule: React.FC<ExpensesModuleProps> = ({
                     <td className="py-3.5 px-4 font-mono text-white/70">{e.date}</td>
 
                     <td className="py-3.5 px-4 font-mono font-black text-rose-400 text-sm">
-                      Rs. {e.amount.toLocaleString('en-PK')}
+                      ₹{e.amount.toLocaleString('en-PK')}
                     </td>
 
                     <td className="py-3.5 px-4 text-right">
@@ -179,61 +174,34 @@ export const ExpensesModule: React.FC<ExpensesModuleProps> = ({
 
       {/* Add Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0D0D0D] border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-6 shadow-2xl relative">
-            <button
-              onClick={closeModal}
-              className="absolute top-5 right-5 text-white/50 hover:text-white"
-            >
-              <X className="w-5 h-5" />
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="expense-modal-title">
+          <div ref={modalRef} className="bg-[#0D0D0D] border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-6 shadow-2xl relative">
+            <button onClick={closeModal} aria-label="Close modal" className="absolute top-5 right-5 text-white/50 hover:text-white">
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
 
             <div>
-              <h2 className="text-lg font-black text-white">Record Facility Expense</h2>
-              <p className="text-xs text-white/50">
-                Log facility rent, power, repair, or salary payment.
-              </p>
+              <h2 id="expense-modal-title" className="text-lg font-black text-white">Record Facility Expense</h2>
+              <p className="text-xs text-white/50">Log facility rent, power, repair, or salary payment.</p>
             </div>
 
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-white/80 mb-1">
-                  Expense Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. AC Maintenance & Gas Refill"
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
-                />
+                <label htmlFor="expense-title" className="block text-xs font-semibold text-white/80 mb-1">Expense Title *</label>
+                <input id="expense-title" type="text" required placeholder="e.g. AC Maintenance & Gas Refill" value={formTitle} onChange={(e) => setFormTitle(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-white/80 mb-1">
-                    Amount (Rs.) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={1}
-                    value={formAmount || ''}
-                    onChange={(e) => setFormAmount(Number(e.target.value))}
-                    className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924] font-mono font-bold"
-                  />
+                  <label htmlFor="expense-amount" className="block text-xs font-semibold text-white/80 mb-1">Amount (₹) *</label>
+                  <input id="expense-amount" type="number" required min={1} value={formAmount || ''} onChange={(e) => setFormAmount(Number(e.target.value))}
+                    className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924] font-mono font-bold" />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-semibold text-white/80 mb-1">
-                    Category
-                  </label>
-                  <select
-                    value={formCategory}
-                    onChange={(e) => setFormCategory(e.target.value as ExpenseCategory)}
-                    className="w-full px-3.5 py-2 text-xs bg-[#0D0D0D] text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
-                  >
+                  <label htmlFor="expense-category" className="block text-xs font-semibold text-white/80 mb-1">Category</label>
+                  <select id="expense-category" value={formCategory} onChange={(e) => setFormCategory(e.target.value as ExpenseCategory)}
+                    className="w-full px-3.5 py-2 text-xs bg-[#0D0D0D] text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]">
                     <option value="Rent">Rent</option>
                     <option value="Utilities">Utilities (Power, Water)</option>
                     <option value="Equipment">Equipment Purchase</option>
@@ -246,44 +214,20 @@ export const ExpensesModule: React.FC<ExpensesModuleProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-white/80 mb-1">
-                  Expense Date
-                </label>
-                <input
-                  type="date"
-                  value={formDate}
-                  onChange={(e) => setFormDate(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
-                />
+                <label htmlFor="expense-date" className="block text-xs font-semibold text-white/80 mb-1">Expense Date</label>
+                <input id="expense-date" type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]" />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-white/80 mb-1">
-                  Notes / Receipt Reference
-                </label>
-                <input
-                  type="text"
-                  placeholder="Optional details"
-                  value={formNotes}
-                  onChange={(e) => setFormNotes(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
-                />
+                <label htmlFor="expense-notes" className="block text-xs font-semibold text-white/80 mb-1">Notes / Receipt Reference</label>
+                <input id="expense-notes" type="text" placeholder="Optional details" value={formNotes} onChange={(e) => setFormNotes(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]" />
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="px-4 py-2 rounded-xl bg-white/10 text-white/70 text-xs font-bold hover:bg-white/20"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-rose-500 text-white text-xs font-extrabold hover:bg-rose-400 transition-all shadow-lg shadow-rose-500/20"
-                >
-                  Record Expense
-                </button>
+                <button type="button" onClick={closeModal} className="px-4 py-2 rounded-xl bg-white/10 text-white/70 text-xs font-bold hover:bg-white/20">Cancel</button>
+                <button type="submit" className="px-5 py-2 rounded-xl bg-rose-500 text-white text-xs font-extrabold hover:bg-rose-400 transition-all shadow-lg shadow-rose-500/20">Record Expense</button>
               </div>
             </form>
           </div>
@@ -293,7 +237,7 @@ export const ExpensesModule: React.FC<ExpensesModuleProps> = ({
       <ConfirmDialog
         open={!!confirmTarget}
         title="Delete Expense"
-        message={`Delete "${confirmTarget?.title}" (Rs. ${confirmTarget?.amount?.toLocaleString('en-PK')})? This record will be permanently removed.`}
+        message={`Delete "${confirmTarget?.title}" (₹${confirmTarget?.amount?.toLocaleString('en-PK')})? This record will be permanently removed.`}
         confirmLabel="Delete"
         onConfirm={async () => {
           if (!confirmTarget) return;

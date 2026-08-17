@@ -137,7 +137,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
   const plans = [
     {
       name: 'Monthly Starter',
-      price: 'Rs. 2,500',
+      price: '₹2,500',
       period: '/ month',
       badge: 'FLEXIBLE',
       badgeColor: 'bg-white/10 text-white border-white/20',
@@ -153,7 +153,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
     },
     {
       name: 'Quarterly Beast',
-      price: 'Rs. 6,000',
+      price: '₹6,000',
       period: '/ 3 months',
       badge: 'MOST POPULAR',
       badgeColor: 'bg-[#E51924] text-white border-red-500/50 shadow-lg shadow-red-500/20',
@@ -169,7 +169,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
     },
     {
       name: 'Half-Yearly Elite',
-      price: 'Rs. 10,000',
+      price: '₹10,000',
       period: '/ 6 months',
       badge: 'SAVE 35%',
       badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
@@ -185,7 +185,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
     },
     {
       name: 'Yearly Champion',
-      price: 'Rs. 18,000',
+      price: '₹18,000',
       period: '/ year',
       badge: 'BEST VALUE',
       badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
@@ -201,7 +201,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
     },
     {
       name: 'Student Fitness Pass',
-      price: 'Rs. 1,800',
+      price: '₹1,800',
       period: '/ month',
       badge: 'STUDENT DISCOUNT',
       badgeColor: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
@@ -216,7 +216,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
     },
     {
       name: 'VIP Personal Coaching',
-      price: 'Rs. 12,000',
+      price: '₹12,000',
       period: '/ month',
       badge: 'GUARANTEED RESULTS',
       badgeColor: 'bg-[#E51924] text-white border-red-500/40',
@@ -527,12 +527,12 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       <section id="about" className="py-20 px-6 border-y border-white/10 relative">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-3">
-            <h2 className="text-[10px] font-black text-[#E51924] uppercase tracking-[0.3em]">
+            <p className="text-[10px] font-black text-[#E51924] uppercase tracking-[0.3em]">
               WORLD-CLASS AMENITIES
-            </h2>
-            <p className="text-4xl font-black uppercase tracking-wide text-white">
-              Built for Heavy Lifters & Goal Seekers
             </p>
+            <h2 className="text-4xl font-black uppercase tracking-wide text-white">
+              Built for Heavy Lifters & Goal Seekers
+            </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -573,10 +573,10 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       <section id="packages" className="py-20 px-6">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-3">
-            <h2 className="text-[10px] font-black text-[#E51924] uppercase tracking-[0.3em]">
+            <p className="text-[10px] font-black text-[#E51924] uppercase tracking-[0.3em]">
               TRANSPARENT MEMBERSHIP PACKAGES
-            </h2>
-            <p className="text-4xl font-black uppercase tracking-wide text-white">Choose Your Training Pass</p>
+            </p>
+            <h2 className="text-4xl font-black uppercase tracking-wide text-white">Choose Your Training Pass</h2>
             <p className="text-xs text-white/50 uppercase tracking-wider font-bold">
               No admission fees. Flexible monthly, quarterly, yearly & VIP coaching packages.
             </p>
@@ -638,10 +638,10 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       <section id="trainers" className="py-20 px-6 border-t border-white/10 bg-white/[0.01]">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-3">
-            <h2 className="text-[10px] font-black text-[#E51924] uppercase tracking-[0.3em]">
+            <p className="text-[10px] font-black text-[#E51924] uppercase tracking-[0.3em]">
               MEET THE CHAMPIONS
-            </h2>
-            <p className="text-4xl font-black uppercase tracking-wide text-white">Elite Gym Trainers</p>
+            </p>
+            <h2 className="text-4xl font-black uppercase tracking-wide text-white">Elite Gym Trainers</h2>
             <p className="text-xs text-white/50 uppercase tracking-wider font-bold">
               Certified master coaches ready to transform your strength, physique, and athletic output.
             </p>
@@ -703,10 +703,10 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       <section id="transformations" className="py-20 px-6 border-t border-white/10 relative">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-3">
-            <h2 className="text-[10px] font-black text-[#E51924] uppercase tracking-[0.3em]">
+            <p className="text-[10px] font-black text-[#E51924] uppercase tracking-[0.3em]">
               REAL RESULTS • NO EXCUSES
-            </h2>
-            <p className="text-4xl font-black uppercase tracking-wide text-white">Client Transformations</p>
+            </p>
+            <h2 className="text-4xl font-black uppercase tracking-wide text-white">Client Transformations</h2>
             <p className="text-xs text-white/50 uppercase tracking-wider font-bold">
               Real Armstrong Gym members who crushed their weight loss & muscle gain goals.
             </p>
@@ -819,10 +819,10 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       <section id="location" className="py-20 px-6 border-t border-white/10">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-3">
-            <h2 className="text-[10px] font-black text-[#E51924] uppercase tracking-[0.3em]">
+            <p className="text-[10px] font-black text-[#E51924] uppercase tracking-[0.3em]">
               FIND OUR GYM
-            </h2>
-            <p className="text-4xl font-black uppercase tracking-wide text-white">Location & Map Navigation</p>
+            </p>
+            <h2 className="text-4xl font-black uppercase tracking-wide text-white">Location & Map Navigation</h2>
             <p className="text-xs text-white/50 uppercase tracking-wider font-bold">
               Visit our state-of-the-art facility in Bandra West, Mumbai. Easy access & valet parking.
             </p>
@@ -1073,7 +1073,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-white/80 mb-1">
-                    Amount Paid (Rs.) *
+                    Amount Paid (₹) *
                   </label>
                   <input
                     type="number"

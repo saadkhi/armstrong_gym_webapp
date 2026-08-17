@@ -1,30 +1,15 @@
 import React, { useState } from 'react';
 import {
-  CreditCard,
-  PlusCircle,
-  Search,
-  Trash2,
-  Printer,
-  IndianRupee,
-  CheckCircle2,
-  X,
-  FileText,
-  Calendar,
-  Check,
-  ExternalLink,
-  ShieldCheck,
-  Clock,
-  Eye,
-  Send,
-  AlertCircle,
-  Image as ImageIcon,
-  Upload,
+  CreditCard, PlusCircle, Search, Trash2, Printer, IndianRupee,
+  CheckCircle2, X, FileText, Calendar, Check, ExternalLink,
+  ShieldCheck, Clock, Eye, Send, AlertCircle, Image as ImageIcon, Upload,
 } from 'lucide-react';
 import { Payment, Member, PaymentMethod } from '../types';
 import { verifyPayment } from '../api/client';
 import toast from 'react-hot-toast';
 import logoImg from '../assets/images/logo.jpg';
 import { ConfirmDialog } from './ConfirmDialog';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface PaymentsModuleProps {
   payments: Payment[];
@@ -58,6 +43,10 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
   const [previewBillUrl, setPreviewBillUrl] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<Payment | null>(null);
   const [isVerifyingId, setIsVerifyingId] = useState<string | null>(null);
+
+  // Focus traps for modals
+  const addModalRef    = useFocusTrap<HTMLDivElement>(showAddModal);
+  const receiptModalRef = useFocusTrap<HTMLDivElement>(!!selectedReceipt);
 
   // Form states
   const [formMemberId, setFormMemberId] = useState(preselectedMemberId || '');
@@ -275,7 +264,7 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
 
                       <div className="text-right font-mono">
                         <span className="text-lg font-black text-amber-400">
-                          Rs. {p.amount.toLocaleString('en-PK')}
+                          ₹{p.amount.toLocaleString('en-PK')}
                         </span>
                         <p className="text-[10px] text-white/40">{p.date}</p>
                       </div>
@@ -303,7 +292,7 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
                           Current Due Balance
                         </p>
                         <p className="font-mono text-rose-400 font-bold">
-                          Rs. {member ? member.remainingBalance.toLocaleString('en-PK') : 0}
+                          ₹{member ? member.remainingBalance.toLocaleString('en-PK') : 0}
                         </p>
                       </div>
 
@@ -312,7 +301,7 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
                           Balance After Approval
                         </p>
                         <p className="font-mono text-emerald-400 font-bold">
-                          Rs. {member ? Math.max(0, member.remainingBalance - p.amount).toLocaleString('en-PK') : 0}
+                          ₹{member ? Math.max(0, member.remainingBalance - p.amount).toLocaleString('en-PK') : 0}
                         </p>
                       </div>
                     </div>
@@ -426,7 +415,7 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
                       </td>
 
                       <td className="py-3.5 px-4 font-mono font-black text-emerald-400 text-sm">
-                        Rs. {p.amount.toLocaleString('en-PK')}
+                        ₹{p.amount.toLocaleString('en-PK')}
                       </td>
 
                       <td className="py-3.5 px-4">
@@ -488,163 +477,94 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
 
       {/* Record Payment & Bill Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0D0D0D] border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-5 shadow-2xl relative">
-            <button
-              onClick={closeModal}
-              className="absolute top-5 right-5 text-white/50 hover:text-white"
-            >
-              <X className="w-5 h-5" />
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title">
+          <div ref={addModalRef} className="bg-[#0D0D0D] border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-5 shadow-2xl relative">
+            <button onClick={closeModal} aria-label="Close modal" className="absolute top-5 right-5 text-white/50 hover:text-white">
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
 
             <div>
-              <h2 className="text-lg font-black text-white">Record Payment & Attach Bill</h2>
-              <p className="text-xs text-white/50">
-                Record fee payment, upload bill screenshot URL, and update portal status immediately.
-              </p>
+              <h2 id="payment-modal-title" className="text-lg font-black text-white">Record Payment & Attach Bill</h2>
+              <p className="text-xs text-white/50">Record fee payment, upload bill screenshot URL, and update portal status immediately.</p>
             </div>
 
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-white/80 mb-1">
-                  Select Member *
-                </label>
-                <select
-                  required
-                  value={formMemberId}
-                  onChange={(e) => handleMemberSelectChange(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs bg-[#0D0D0D] text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
-                >
+                <label htmlFor="pay-member-id" className="block text-xs font-semibold text-white/80 mb-1">Select Member *</label>
+                <select id="pay-member-id" required value={formMemberId} onChange={(e) => handleMemberSelectChange(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-[#0D0D0D] text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]">
                   <option value="">-- Choose Member --</option>
                   {members.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.name} ({m.id}) — Outstanding Due: Rs. {m.remainingBalance.toLocaleString('en-PK')}
+                      {m.name} ({m.id}) — Due: ₹{m.remainingBalance.toLocaleString('en-IN')}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-white/80 mb-1">
-                  Payment Amount (Rs.) *
-                </label>
-                <input
-                  type="number"
-                  required
-                  min={1}
-                  value={formAmount || ''}
-                  onChange={(e) => setFormAmount(Number(e.target.value))}
+                <label htmlFor="pay-amount" className="block text-xs font-semibold text-white/80 mb-1">Payment Amount (₹) *</label>
+                <input id="pay-amount" type="number" required min={1} value={formAmount || ''} onChange={(e) => setFormAmount(Number(e.target.value))}
                   placeholder="Enter amount"
-                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-emerald-400 rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924] font-mono font-bold"
-                />
+                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-emerald-400 rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924] font-mono font-bold" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-white/80 mb-1">
-                    Payment Mode
-                  </label>
-                  <select
-                    value={formMethod}
-                    onChange={(e) => setFormMethod(e.target.value as PaymentMethod)}
-                    className="w-full px-3.5 py-2 text-xs bg-[#0D0D0D] text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
-                  >
+                  <label htmlFor="pay-method" className="block text-xs font-semibold text-white/80 mb-1">Payment Mode</label>
+                  <select id="pay-method" value={formMethod} onChange={(e) => setFormMethod(e.target.value as PaymentMethod)}
+                    className="w-full px-3.5 py-2 text-xs bg-[#0D0D0D] text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]">
                     <option value="UPI">UPI / Mobile Wallet</option>
                     <option value="Cash">Cash at Counter</option>
                     <option value="Card">Debit / Credit Card</option>
                     <option value="Net Banking">Net Banking / Bank Transfer</option>
                   </select>
                 </div>
-
                 <div>
-                  <label className="block text-xs font-semibold text-white/80 mb-1">
-                    UTR / Transaction ID
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. TXN-9812304"
-                    value={formTransactionId}
-                    onChange={(e) => setFormTransactionId(e.target.value)}
-                    className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924] font-mono"
-                  />
+                  <label htmlFor="pay-txn-id" className="block text-xs font-semibold text-white/80 mb-1">UTR / Transaction ID</label>
+                  <input id="pay-txn-id" type="text" placeholder="e.g. TXN-9812304" value={formTransactionId} onChange={(e) => setFormTransactionId(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924] font-mono" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-white/80 mb-1">
-                  Attach Bill / Receipt Screenshot (Upload Image)
-                </label>
-
-                <input
-                  type="file"
-                  id="admin-bill-file-upload"
-                  accept="image/*"
-                  onChange={handleAdminImageFileUpload}
-                  className="hidden"
-                />
-
+                <label htmlFor="admin-bill-file-upload" className="block text-xs font-semibold text-white/80 mb-1">Attach Bill / Receipt Screenshot</label>
+                <input type="file" id="admin-bill-file-upload" accept="image/*" onChange={handleAdminImageFileUpload} className="hidden" />
                 {!formBillUrl ? (
-                  <label
-                    htmlFor="admin-bill-file-upload"
-                    className="flex items-center justify-center gap-2 p-3 bg-white/5 hover:bg-white/10 border border-dashed border-white/20 hover:border-[#E51924] rounded-xl cursor-pointer transition-all group text-center"
-                  >
-                    <Upload className="w-4 h-4 text-[#E51924] group-hover:scale-110 transition-transform" />
-                    <span className="text-xs font-bold text-white group-hover:text-[#E51924]">
-                      Upload Bill Image File
-                    </span>
+                  <label htmlFor="admin-bill-file-upload"
+                    className="flex items-center justify-center gap-2 p-3 bg-white/5 hover:bg-white/10 border border-dashed border-white/20 hover:border-[#E51924] rounded-xl cursor-pointer transition-all group text-center">
+                    <Upload className="w-4 h-4 text-[#E51924] group-hover:scale-110 transition-transform" aria-hidden="true" />
+                    <span className="text-xs font-bold text-white group-hover:text-[#E51924]">Upload Bill Image File</span>
                   </label>
                 ) : (
                   <div className="rounded-xl overflow-hidden border border-emerald-500/40 bg-black/80 p-2.5 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1 font-mono">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Bill Image Attached
+                        <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" /> Bill Image Attached
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => setFormBillUrl('')}
-                        className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 text-[10px] font-bold flex items-center gap-1 hover:bg-rose-500/30"
-                      >
-                        <X className="w-3 h-3" /> Clear
+                      <button type="button" onClick={() => setFormBillUrl('')}
+                        className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 text-[10px] font-bold flex items-center gap-1 hover:bg-rose-500/30">
+                        <X className="w-3 h-3" aria-hidden="true" /> Clear
                       </button>
                     </div>
-                    {formBillUrl.startsWith('data:image') || formBillUrl.startsWith('http') ? (
+                    {(formBillUrl.startsWith('data:image') || formBillUrl.startsWith('http')) && (
                       <div className="h-28 w-full rounded-lg overflow-hidden bg-black flex items-center justify-center border border-white/10">
-                        <img
-                          src={formBillUrl}
-                          alt="Bill Proof Preview"
-                          className="h-full w-full object-contain"
-                        />
+                        <img src={formBillUrl} alt="Bill Proof Preview" className="h-full w-full object-contain" />
                       </div>
-                    ) : null}
+                    )}
                   </div>
                 )}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-white/80 mb-1">
-                  Notes
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Fees cleared for 2nd installment"
-                  value={formNotes}
-                  onChange={(e) => setFormNotes(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]"
-                />
+                <label htmlFor="pay-notes" className="block text-xs font-semibold text-white/80 mb-1">Notes</label>
+                <input id="pay-notes" type="text" placeholder="e.g. Fees cleared for 2nd installment" value={formNotes} onChange={(e) => setFormNotes(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]" />
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="px-4 py-2 rounded-xl bg-white/10 text-white/70 text-xs font-bold hover:bg-white/20"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#E51924] text-white text-xs font-extrabold hover:bg-red-600 transition-all shadow-lg shadow-red-500/20"
-                >
+                <button type="button" onClick={closeModal} className="px-4 py-2 rounded-xl bg-white/10 text-white/70 text-xs font-bold hover:bg-white/20">Cancel</button>
+                <button type="submit" className="px-5 py-2 rounded-xl bg-[#E51924] text-white text-xs font-extrabold hover:bg-red-600 transition-all shadow-lg shadow-red-500/20">
                   Record & Update Portal
                 </button>
               </div>
@@ -678,8 +598,8 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
 
       {/* Printable Receipt Modal */}
       {selectedReceipt && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0D0D0D] border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-6 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="receipt-modal-title">
+          <div ref={receiptModalRef} className="bg-[#0D0D0D] border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-6 shadow-2xl relative">
             <button
               onClick={() => setSelectedReceipt(null)}
               className="absolute top-4 right-4 text-white/50 hover:text-white"
@@ -733,7 +653,7 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
               <div className="border-t border-white/10 pt-3 flex justify-between items-baseline text-sm">
                 <span className="font-bold text-white/90">Amount Received:</span>
                 <span className="font-black text-emerald-400 text-lg">
-                  Rs. {selectedReceipt.amount.toLocaleString('en-PK')}
+                  ₹{selectedReceipt.amount.toLocaleString('en-PK')}
                 </span>
               </div>
             </div>
@@ -752,7 +672,7 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
       <ConfirmDialog
         open={!!confirmTarget}
         title="Delete Payment"
-        message={`Delete payment ${confirmTarget?.id} of Rs. ${confirmTarget?.amount?.toLocaleString('en-PK')}? Member balance will be recalculated and this cannot be undone.`}
+        message={`Delete payment ${confirmTarget?.id} of ₹${confirmTarget?.amount?.toLocaleString('en-PK')}? Member balance will be recalculated and this cannot be undone.`}
         confirmLabel="Delete"
         onConfirm={async () => {
           if (!confirmTarget) return;

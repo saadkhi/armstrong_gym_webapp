@@ -136,7 +136,7 @@ export const GymDashboard: React.FC<GymDashboardProps> = ({
             Daily Revenue
           </p>
           <h3 className="stat-val text-4xl text-white">
-            Rs. {stats.todaysIncome.toLocaleString('en-PK')}
+            ₹{stats.todaysIncome.toLocaleString('en-PK')}
           </h3>
           <p className="text-[10px] text-cyan-400 font-extrabold uppercase tracking-wider mt-2">
             Today's Collections
@@ -166,10 +166,10 @@ export const GymDashboard: React.FC<GymDashboardProps> = ({
             Net Monthly Profit
           </p>
           <h3 className={`stat-val text-4xl ${stats.netProfit >= 0 ? 'text-white' : 'text-[#ff3e3e]'}`}>
-            Rs. {stats.netProfit.toLocaleString('en-PK')}
+            ₹{stats.netProfit.toLocaleString('en-PK')}
           </h3>
           <p className="text-[10px] opacity-40 mt-2 uppercase font-bold tracking-wider">
-            Rev: Rs. {stats.monthlyIncome.toLocaleString('en-PK')}
+            Rev: ₹{stats.monthlyIncome.toLocaleString('en-PK')}
           </p>
         </div>
       </section>
@@ -331,7 +331,7 @@ export const GymDashboard: React.FC<GymDashboardProps> = ({
                   </p>
                 </div>
                 <span className="text-xs font-black text-emerald-400 font-mono">
-                  +Rs. {p.amount.toLocaleString('en-PK')}
+                  +₹{p.amount.toLocaleString('en-PK')}
                 </span>
               </div>
             ))}

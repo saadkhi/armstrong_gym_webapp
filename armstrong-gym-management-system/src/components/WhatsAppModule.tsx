@@ -52,7 +52,7 @@ export const WhatsAppModule: React.FC<WhatsAppModuleProps> = ({
     unpaidMembers.map((m) => m.id)
   );
   const [batchTemplate, setBatchTemplate] = useState(
-    'Dear {Name}, your Armstrong Gym fee balance of Rs. {Balance} for your {Plan} plan is pending. Please complete your payment via UPI/Cash and submit your transaction receipt to gym admin. Thank you!'
+    'Dear {Name}, your Armstrong Gym fee balance of ₹{Balance} for your {Plan} plan is pending. Please complete your payment via UPI/Cash and submit your transaction receipt to gym admin. Thank you!'
   );
   const [batchDispatchResults, setBatchDispatchResults] = useState<
     Array<{
@@ -186,7 +186,7 @@ export const WhatsAppModule: React.FC<WhatsAppModuleProps> = ({
             <div>
               <p className="text-[10px] uppercase font-bold text-white/40">Pending Dues</p>
               <p className="text-sm font-black text-emerald-400">
-                Rs. {totalUnpaidDues.toLocaleString('en-PK')}{' '}
+                ₹{totalUnpaidDues.toLocaleString('en-PK')}{' '}
                 <span className="text-xs text-white/40 font-normal">
                   ({unpaidMembers.length} Unpaid Members)
                 </span>
@@ -243,7 +243,7 @@ export const WhatsAppModule: React.FC<WhatsAppModuleProps> = ({
 
                       <div className="text-right pl-2">
                         <span className="text-xs font-mono font-extrabold text-amber-400">
-                          Rs. {m.remainingBalance.toLocaleString('en-PK')}
+                          ₹{m.remainingBalance.toLocaleString('en-PK')}
                         </span>
                         <p className="text-[9px] text-white/40">{m.planType}</p>
                       </div>
@@ -313,7 +313,7 @@ export const WhatsAppModule: React.FC<WhatsAppModuleProps> = ({
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-white">{item.memberName}</span>
                         <span className="text-xs font-mono font-black text-amber-400">
-                          Due: Rs. {item.remainingBalance.toLocaleString('en-PK')}
+                          Due: ₹{item.remainingBalance.toLocaleString('en-PK')}
                         </span>
                       </div>
                       <p className="text-[10px] text-white/60 line-clamp-2 italic font-mono bg-white/5 p-1.5 rounded border border-white/10">
@@ -367,7 +367,7 @@ export const WhatsAppModule: React.FC<WhatsAppModuleProps> = ({
                 <option value="">-- Choose Member --</option>
                 {members.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.name} ({m.phone}) — {m.status} (Due: Rs. {m.remainingBalance.toLocaleString('en-PK')})
+                    {m.name} ({m.phone}) — {m.status} (Due: ₹{m.remainingBalance.toLocaleString('en-PK')})
                   </option>
                 ))}
               </select>

@@ -685,11 +685,6 @@ export async function nextLogId(): Promise<string> {
   return `LOG-${3000 + Number(rows[0].count) + 1}`;
 }
 
-export async function nextLogId(): Promise<string> {
-  const rows = await query<{ count: string }>('SELECT COUNT(*) FROM reminder_logs');
-  return `LOG-${3000 + Number(rows[0].count) + 1}`;
-}
-
 // ─── SQL-aggregate stats ───────────────────────────────────────────────────────
 /**
  * Returns dashboard stats using a single DB round-trip with SQL aggregates

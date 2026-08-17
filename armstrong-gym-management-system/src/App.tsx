@@ -105,7 +105,7 @@ const TableSkeleton = ({ rows = 8, cols = 5 }: { rows?: number; cols?: number })
       <SkeletonBlock className="h-9 w-64 rounded-xl" />
       <div className="flex gap-2 ml-auto">
         {Array.from({ length: 4 }).map((_, i) => (
-          <SkeletonBlock key={i} className="h-8 w-20 rounded-xl" />
+          <div key={i}><SkeletonBlock className="h-8 w-20 rounded-xl" /></div>
         ))}
       </div>
     </div>
@@ -114,14 +114,16 @@ const TableSkeleton = ({ rows = 8, cols = 5 }: { rows?: number; cols?: number })
       {/* thead */}
       <div className="flex gap-4 px-4 py-3 border-b border-white/10 bg-white/5">
         {Array.from({ length: cols }).map((_, i) => (
-          <SkeletonBlock key={i} className="h-3 flex-1" />
+          <div key={i} className="flex-1"><SkeletonBlock className="h-3 w-full" /></div>
         ))}
       </div>
       {/* tbody */}
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="flex gap-4 px-4 py-3.5 border-b border-white/5">
           {Array.from({ length: cols }).map((_, j) => (
-            <SkeletonBlock key={j} className={`h-4 ${j === 0 ? 'w-10 rounded-full' : 'flex-1'}`} />
+            <div key={j} className={j === 0 ? 'w-10' : 'flex-1'}>
+              <SkeletonBlock className={`h-4 ${j === 0 ? 'rounded-full' : ''}`} />
+            </div>
           ))}
         </div>
       ))}

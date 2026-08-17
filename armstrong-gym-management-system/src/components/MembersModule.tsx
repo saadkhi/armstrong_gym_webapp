@@ -289,11 +289,11 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
 
                     <td className="py-3.5 px-4 font-mono">
                       <p className="text-emerald-400 font-bold">
-                        Rs. {m.amountPaid.toLocaleString('en-PK')}
+                        ₹{m.amountPaid.toLocaleString('en-PK')}
                       </p>
                       {m.remainingBalance > 0 ? (
                         <p className="text-[10px] text-rose-400 font-bold">
-                          Due: Rs. {m.remainingBalance.toLocaleString('en-PK')}
+                          Due: ₹{m.remainingBalance.toLocaleString('en-PK')}
                         </p>
                       ) : (
                         <p className="text-[10px] text-white/40">Paid in Full</p>

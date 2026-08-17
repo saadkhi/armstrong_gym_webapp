@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-const FOCUSABLE = [
+const FOCUSABLE_SELECTORS = [
   'a[href]',
   'button:not([disabled])',
   'input:not([disabled])',
@@ -10,9 +10,9 @@ const FOCUSABLE = [
 ].join(', ');
 
 /**
- * Traps keyboard focus inside `ref` when `active` is true.
- * On activation, focuses the first focusable element inside the container.
- * Returns a ref to attach to the modal container element.
+ * Traps keyboard focus inside the returned `ref` container when `active` is true.
+ * On activation, moves focus to the first focusable element inside.
+ * On deactivation, returns focus to the previously-focused element.
  */
 export function useFocusTrap<T extends HTMLElement>(active: boolean) {
   const ref = useRef<T>(null);
@@ -21,19 +21,19 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
     if (!active || !ref.current) return;
 
     const container = ref.current;
-    const elements = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE));
-    if (elements.length === 0) return;
-
-    // Remember what was focused before the modal opened
     const previouslyFocused = document.activeElement as HTMLElement | null;
 
-    // Focus first element
-    elements[0].focus();
+    const getFocusable = (): HTMLElement[] =>
+      Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS));
+
+    // Focus first focusable element
+    const firstEl = getFocusable()[0];
+    if (firstEl) firstEl.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return;
-
-      const focusable = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE));
+      const focusable = getFocusable();
+      if (focusable.length === 0) return;
       const first = focusable[0];
       const last  = focusable[focusable.length - 1];
 
@@ -51,10 +51,8 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
     };
 
     document.addEventListener('keydown', handleKeyDown);
-
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      // Return focus to the trigger element when modal closes
       previouslyFocused?.focus();
     };
   }, [active]);
