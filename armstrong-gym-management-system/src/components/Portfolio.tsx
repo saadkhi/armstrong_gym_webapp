@@ -44,6 +44,133 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
   const [activeTrainerModal, setActiveTrainerModal] = useState<any | null>(null);
   const [liveTrainers, setLiveTrainers] = useState<Trainer[]>([]);
 
+  // ── Structured data (JSON-LD) for local SEO ──────────────────────────────
+  useEffect(() => {
+    const schemas = [
+      // 1. LocalBusiness + GymOrSportsActivityLocation
+      {
+        '@context': 'https://schema.org',
+        '@type': ['LocalBusiness', 'GymOrSportsActivityLocation'],
+        '@id': 'https://armstrong-gym.vercel.app/#gym',
+        name: 'Armstrong Gym & Fitness Club',
+        description:
+          'Premium strength training facility in Bandra West, Mumbai. Rogue barbells, certified coaches, QR attendance, steam sauna and personalised nutrition plans.',
+        url: 'https://armstrong-gym.vercel.app/',
+        telephone: '+91-98765-43210',
+        email: 'info@armstronggym.in',
+        image: 'https://armstrong-gym.vercel.app/og-image.jpg',
+        logo: 'https://armstrong-gym.vercel.app/logo.jpg',
+        priceRange: '₹₹',
+        currenciesAccepted: 'INR',
+        paymentAccepted: 'Cash, UPI, Credit Card, Net Banking',
+        address: {
+          '@type': 'PostalAddress',
+          streetAddress: '3rd Floor, Horizon Tower, Hill Road, Opposite McDonald\'s',
+          addressLocality: 'Bandra West',
+          addressRegion: 'Maharashtra',
+          postalCode: '400050',
+          addressCountry: 'IN',
+        },
+        geo: {
+          '@type': 'GeoCoordinates',
+          latitude: 19.054593,
+          longitude: 72.828551,
+        },
+        hasMap: 'https://maps.app.goo.gl/edaxYmzF3znci2NX8',
+        openingHoursSpecification: [
+          {
+            '@type': 'OpeningHoursSpecification',
+            dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+            opens: '05:00',
+            closes: '23:00',
+          },
+          {
+            '@type': 'OpeningHoursSpecification',
+            dayOfWeek: 'Sunday',
+            opens: '06:00',
+            closes: '20:00',
+          },
+        ],
+        amenityFeature: [
+          { '@type': 'LocationFeatureSpecification', name: 'Olympic Barbells', value: true },
+          { '@type': 'LocationFeatureSpecification', name: 'Power Cages',      value: true },
+          { '@type': 'LocationFeatureSpecification', name: 'Steam Sauna',      value: true },
+          { '@type': 'LocationFeatureSpecification', name: 'Locker Rooms',     value: true },
+          { '@type': 'LocationFeatureSpecification', name: 'Free Wi-Fi',       value: true },
+          { '@type': 'LocationFeatureSpecification', name: 'QR Code Attendance', value: true },
+          { '@type': 'LocationFeatureSpecification', name: 'Personal Training', value: true },
+        ],
+        sameAs: [
+          'https://maps.app.goo.gl/edaxYmzF3znci2NX8',
+        ],
+      },
+      // 2. FAQ — common membership questions for Google rich results
+      {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: [
+          {
+            '@type': 'Question',
+            name: 'What are the membership plans at Armstrong Gym?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Armstrong Gym offers Monthly (₹2,500), Quarterly (₹6,000), Half-Yearly (₹10,000), Yearly (₹18,000), Student Pass (₹1,800/month) and VIP Personal Coaching (₹12,000/month) plans. No admission or joining fees.',
+            },
+          },
+          {
+            '@type': 'Question',
+            name: 'Where is Armstrong Gym located?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: '3rd Floor, Horizon Tower, Hill Road, Opposite McDonald\'s, Bandra West, Mumbai — Maharashtra 400050. Easy access from Bandra station.',
+            },
+          },
+          {
+            '@type': 'Question',
+            name: 'What are Armstrong Gym\'s opening hours?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Monday to Saturday: 5:00 AM – 11:00 PM. Sunday: 6:00 AM – 8:00 PM.',
+            },
+          },
+          {
+            '@type': 'Question',
+            name: 'Does Armstrong Gym offer personal training?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Yes. Armstrong Gym has certified master coaches specialising in powerlifting, bodybuilding, HIIT, fat loss, and sports nutrition. Book a 1-on-1 session via WhatsApp.',
+            },
+          },
+          {
+            '@type': 'Question',
+            name: 'Can I get a free trial at Armstrong Gym?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Yes. Armstrong Gym offers a free 1-day VIP trial pass. Fill in the form on the website and receive your pass via WhatsApp.',
+            },
+          },
+        ],
+      },
+    ];
+
+    // Inject one <script type="application/ld+json"> per schema
+    const scriptTags: HTMLScriptElement[] = schemas.map((schema, i) => {
+      const el = document.createElement('script');
+      el.type = 'application/ld+json';
+      el.id   = `ld-json-${i}`;
+      el.text = JSON.stringify(schema);
+      document.head.appendChild(el);
+      return el;
+    });
+
+    // Clean up when Portfolio unmounts (e.g. user navigates to admin)
+    return () => {
+      scriptTags.forEach((el) => {
+        if (el.parentNode) el.parentNode.removeChild(el);
+      });
+    };
+  }, []);
+
   // Fetch live trainers from the backend on mount
   useEffect(() => {
     fetchPublicTrainers()

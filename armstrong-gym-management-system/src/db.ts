@@ -353,10 +353,12 @@ export async function seedDbIfNeeded(): Promise<void> {
 
 let dbInitPromise: Promise<void> | null = null;
 
-/** Idempotent schema + seed setup (safe on every cold start). */
+/** Idempotent schema + seed + migration setup (safe on every cold start). */
 export async function ensureDb(): Promise<void> {
   if (!dbInitPromise) {
-    dbInitPromise = createTables().then(() => seedDbIfNeeded());
+    dbInitPromise = createTables()
+      .then(() => seedDbIfNeeded())
+      .then(() => runSchemaMigrations());
   }
   return dbInitPromise;
 }

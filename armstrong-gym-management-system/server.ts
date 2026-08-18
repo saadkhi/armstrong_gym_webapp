@@ -62,6 +62,9 @@ import {
   updateSettings,
   // SQL-aggregate stats
   getStatsFromDb,
+  // renewal + duplicate-phone
+  getMemberByPhone,
+  renewMembership,
   // historical chart
   getMonthlyHistory,
 } from './src/db';
