@@ -75,6 +75,19 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
     toast.success('Members CSV downloaded!');
   };
 
+  const exportAttendanceCSV = () => {
+    const csv = Papa.unparse(attendance.map((a) => ({
+      ID: a.id,
+      MemberID: a.memberId,
+      MemberName: a.memberName,
+      Date: a.date,
+      Time: a.time,
+      CheckInMethod: a.checkInMethod,
+    })));
+    downloadFile(csv, `Armstrong_Gym_Attendance_${range}.csv`, 'text/csv');
+    toast.success('Attendance CSV downloaded!');
+  };
+
   const exportFinancialsCSV = () => {
     const rows = [
       ...filteredPayments.map((p) => ({
@@ -300,7 +313,7 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
       </div>
 
       {/* Export buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Print */}
         <button
           onClick={handlePrint}
@@ -378,6 +391,26 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
             </div>
           </div>
           <Download className="w-4 h-4 text-white/40 group-hover:text-emerald-400" aria-hidden="true" />
+        </button>
+
+        {/* Attendance CSV */}
+        <button
+          onClick={exportAttendanceCSV}
+          className="p-5 rounded-2xl glass-card hover:bg-white/10 border border-white/10 hover:border-purple-500/50 flex items-center justify-between transition-all group"
+          aria-label="Export attendance CSV"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center">
+              <FileSpreadsheet className="w-5 h-5" aria-hidden="true" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-bold text-white group-hover:text-purple-400 transition-colors">
+                Attendance CSV
+              </p>
+              <p className="text-xs text-white/50">Full check-in log</p>
+            </div>
+          </div>
+          <Download className="w-4 h-4 text-white/40 group-hover:text-purple-400" aria-hidden="true" />
         </button>
       </div>
     </div>

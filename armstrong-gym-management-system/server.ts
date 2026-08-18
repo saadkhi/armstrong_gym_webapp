@@ -11,6 +11,7 @@ import * as Sentry from '@sentry/node';
 import {
   createTables,
   seedDbIfNeeded,
+  runSchemaMigrations,
   // admin
   getAdminByEmail,
   getAdminById,
@@ -61,6 +62,8 @@ import {
   updateSettings,
   // SQL-aggregate stats
   getStatsFromDb,
+  // historical chart
+  getMonthlyHistory,
 } from './src/db';
 
 import type { Member, Payment, Attendance, Trainer, Expense, ReminderLog } from './src/types';
@@ -198,6 +201,7 @@ async function startServer() {
   // Init DB
   await createTables();
   await seedDbIfNeeded();
+  await runSchemaMigrations();
   console.log('✓ Database ready');
 
   // ─── Health ────────────────────────────────────────────────────────────────
@@ -281,10 +285,28 @@ async function startServer() {
   // ─── Stats ─────────────────────────────────────────────────────────────────
   app.get('/api/stats', requireAuth, async (_req: Request, res: Response) => {
     try {
+      const { getCache, setCache, CACHE_KEYS } = await import('./src/lib/cache');
+      const cached = await getCache(CACHE_KEYS.STATS);
+      if (cached) {
+        res.setHeader('X-Cache', 'HIT');
+        return res.json(cached);
+      }
       const stats = await getStatsFromDb();
+      await setCache(CACHE_KEYS.STATS, stats, 30);
+      res.setHeader('X-Cache', 'MISS');
       return res.json(stats);
     } catch (err) {
       console.error('[stats]', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/stats/history', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const months = Math.min(24, Math.max(1, parseInt((req.query.months as string) || '6', 10)));
+      return res.json(await getMonthlyHistory(months));
+    } catch (err) {
+      console.error('[stats/history]', err);
       return res.status(500).json({ error: 'Internal server error' });
     }
   });
@@ -310,6 +332,22 @@ async function startServer() {
     } catch (err) { console.error('[members GET]', err); return res.status(500).json({ error: 'Internal server error' }); }
   });
 
+  // ── Membership renewal ──────────────────────────────────────────────────────
+  app.post('/api/members/:id/renew', requireAuth, async (req, res) => {
+    try {
+      const { planType = 'Monthly', planCost, amountPaid = 0, paymentMethod = 'Cash', transactionId, notes } = req.body;
+      const payId = await nextPaymentId();
+      const { member, payment } = await renewMembership(req.params.id, {
+        planType, planCost: Number(planCost), amountPaid: Number(amountPaid),
+        paymentMethod, paymentId: payId, transactionId, notes, nowTs: nowTimestamp(),
+      });
+      return res.json({ success: true, member, payment });
+    } catch (err: any) {
+      const status = err.message === 'Member not found' ? 404 : 500;
+      return res.status(status).json({ error: err.message || 'Internal server error' });
+    }
+  });
+
   app.get('/api/members/:id', requireAuth, async (req, res) => {
     try {
       const m = await getMemberById(req.params.id);
@@ -324,6 +362,16 @@ async function startServer() {
         planType = 'Monthly', planCost = 0, amountPaid = 0,
         startDate, trainerId, emergencyContact, notes } = req.body;
       if (!name) return res.status(400).json({ error: 'name is required' });
+
+      // Duplicate phone check
+      if (phone) {
+        const existing = await getMemberByPhone(phone);
+        if (existing) {
+          return res.status(409).json({
+            error: `Phone number is already registered to member ${existing.name} (${existing.id})`,
+          });
+        }
+      }
 
       const id = await nextMemberId();
       const duration = planDuration(planType);
@@ -588,42 +636,86 @@ async function startServer() {
       const { memberId, type, customMessage } = req.body;
       const member = await getMemberById(memberId);
       if (!member) return res.status(404).json({ error: 'Member not found' });
+
       let msg: string = customMessage;
       if (!msg) {
         switch (type) {
-          case 'Fee Reminder':   msg = `Dear ${member.name}, your remaining balance of ₹${member.remainingBalance} for Armstrong Gym is due. Kindly make payment at your earliest convenience. Thank you!`; break;
+          case 'Fee Reminder':    msg = `Dear ${member.name}, your remaining balance of ₹${member.remainingBalance} for Armstrong Gym is due. Kindly make payment at your earliest convenience. Thank you!`; break;
           case 'Expiry Reminder': msg = `Dear ${member.name}, your Armstrong Gym membership expires on ${member.expiryDate}. Renew now to continue uninterrupted workouts!`; break;
           case 'Expired Notice':  msg = `Dear ${member.name}, your Armstrong Gym membership expired on ${member.expiryDate}. Please renew your plan to reactivate access.`; break;
           default: msg = `Hello ${member.name}, greetings from Armstrong Gym! We hope you are having a great training session.`;
         }
       }
+
+      // Try real Twilio, fall back to wa.me URL
+      const { sendWhatsAppViaTwilio } = await import('./src/lib/twilio');
+      const settings     = await getSettings();
+      const twilioResult = await sendWhatsAppViaTwilio(member.phone, msg, {
+        accountSid: settings.twilioAccountSid,
+        authToken:  settings.twilioAuthToken,
+        from:       settings.twilioWhatsappFrom,
+      });
+
       const logId = await nextLogId();
-      const log: ReminderLog = { id: logId, memberId: member.id, memberName: member.name, phone: member.phone, type: type || 'Custom', message: msg, sentAt: nowTimestamp(), status: 'Sent' };
+      const log: ReminderLog = {
+        id: logId, memberId: member.id, memberName: member.name, phone: member.phone,
+        type: type || 'Custom', message: msg, sentAt: nowTimestamp(),
+        status: twilioResult.status === 'sent' ? 'Sent' : 'Simulated',
+      };
       await insertReminderLog(log);
-      return res.json({ success: true, log, whatsappUrl: `https://wa.me/${member.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}` });
+      return res.json({
+        success: true, log,
+        whatsappUrl:  twilioResult.whatsappUrl,
+        twilioSid:    twilioResult.sid,
+        twilioStatus: twilioResult.status,
+      });
     } catch (err) { return res.status(500).json({ error: 'Internal server error' }); }
   });
 
   app.post('/api/whatsapp/batch-send-unpaid', requireAuth, async (req, res) => {
     try {
       const { targetMemberIds, customTemplate } = req.body;
-      const allMembers = await getMembers();
+      const { sendWhatsAppViaTwilio } = await import('./src/lib/twilio');
+      const [allMembers, settings] = await Promise.all([getMembers(), getSettings()]);
       let unpaid = allMembers.filter((m) => Number(m.remainingBalance) > 0);
       if (Array.isArray(targetMemberIds) && targetMemberIds.length > 0) {
         unpaid = unpaid.filter((m) => targetMemberIds.includes(m.id));
       }
       if (unpaid.length === 0) return res.json({ success: true, count: 0, message: 'No unpaid clients found.', dispatchList: [] });
+
       const now = nowTimestamp();
       const dispatchList: any[] = [];
       for (const m of unpaid) {
         const msg = customTemplate
           ? customTemplate.replace(/{Name}/g, m.name).replace(/{Balance}/g, String(m.remainingBalance)).replace(/{Plan}/g, m.planType).replace(/{Expiry}/g, m.expiryDate)
-          : `Dear ${m.name}, your Armstrong Gym fee balance of ₹${m.remainingBalance} for your ${m.planType} plan is pending. Please make your payment via UPI or Cash and submit the receipt to gym admin. Thank you!`;
+          : `Dear ${m.name}, your Armstrong Gym fee balance of ₹${m.remainingBalance} for your ${m.planType} plan is pending. Please make your payment and submit the receipt to gym admin. Thank you!`;
+
+        const twilioResult = await sendWhatsAppViaTwilio(m.phone, msg, {
+          accountSid: settings.twilioAccountSid,
+          authToken:  settings.twilioAuthToken,
+          from:       settings.twilioWhatsappFrom,
+        });
         const logId = await nextLogId();
-        await insertReminderLog({ id: logId, memberId: m.id, memberName: m.name, phone: m.phone, type: 'Fee Reminder', message: msg, sentAt: now, status: 'Sent' });
-        dispatchList.push({ memberId: m.id, memberName: m.name, phone: m.phone, remainingBalance: m.remainingBalance, message: msg, whatsappUrl: `https://wa.me/${m.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, logId });
+        await insertReminderLog({
+          id: logId, memberId: m.id, memberName: m.name, phone: m.phone,
+          type: 'Fee Reminder', message: msg, sentAt: now,
+          status: twilioResult.status === 'sent' ? 'Sent' : 'Simulated',
+        });
+        dispatchList.push({
+          memberId: m.id, memberName: m.name, phone: m.phone,
+          remainingBalance: m.remainingBalance, message: msg,
+          whatsappUrl: twilioResult.whatsappUrl, twilioSid: twilioResult.sid,
+          twilioStatus: twilioResult.status, logId,
+        });
       }
-      return res.json({ success: true, count: dispatchList.length, message: `Messages generated for ${dispatchList.length} unpaid clients!`, dispatchList });
+      const sentCount = dispatchList.filter((d) => d.twilioStatus === 'sent').length;
+      return res.json({
+        success: true, count: dispatchList.length,
+        message: sentCount > 0
+          ? `Sent ${sentCount}/${dispatchList.length} messages via Twilio!`
+          : `Generated WhatsApp links for ${dispatchList.length} clients.`,
+        dispatchList,
+      });
     } catch (err) { return res.status(500).json({ error: 'Internal server error' }); }
   });
 

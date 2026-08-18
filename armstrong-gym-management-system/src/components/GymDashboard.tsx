@@ -26,12 +26,14 @@ import {
   Area,
 } from 'recharts';
 import { SystemStats, Member, Payment, Attendance } from '../types';
+import type { MonthlyHistoryPoint } from '../api/client';
 
 interface GymDashboardProps {
   stats: SystemStats;
   members: Member[];
   payments: Payment[];
   attendance: Attendance[];
+  chartHistory: MonthlyHistoryPoint[];
   onNavigateTab: (tab: any) => void;
   onSelectMember: (member: Member) => void;
 }
@@ -41,24 +43,29 @@ export const GymDashboard: React.FC<GymDashboardProps> = ({
   members,
   payments,
   attendance,
+  chartHistory,
   onNavigateTab,
   onSelectMember,
 }) => {
   // Expiring members
   const expiringMembersList = members.filter((m) => m.status === 'Expiring');
 
-  // Chart data: Monthly comparison
-  const chartData = [
-    { month: 'MAY', income: 42000, expenses: 22000, profit: 20000 },
-    { month: 'JUN', income: 51000, expenses: 28000, profit: 23000 },
-    { month: 'JUL', income: 64000, expenses: 31000, profit: 33000 },
-    {
-      month: 'AUG (CURRENT)',
-      income: stats.monthlyIncome || 31000,
-      expenses: stats.monthlyExpenses || 51700,
-      profit: stats.netProfit || -20700,
-    },
-  ];
+  // Chart data: use live DB history if available, otherwise show current month only
+  const chartData = chartHistory.length > 0
+    ? chartHistory.map((h) => ({
+        month:    h.label,
+        income:   h.income,
+        expenses: h.expenses,
+        profit:   h.profit,
+      }))
+    : [
+        {
+          month:    new Date().toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }),
+          income:   stats.monthlyIncome,
+          expenses: stats.monthlyExpenses,
+          profit:   stats.netProfit,
+        },
+      ];
 
   return (
     <div className="space-y-8 pb-12 relative">

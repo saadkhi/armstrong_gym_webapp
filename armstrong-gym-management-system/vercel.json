@@ -7,7 +7,9 @@
   "rewrites": [
     { "source": "/api/auth/login",                    "destination": "/api/auth?_route=login" },
     { "source": "/api/auth/me",                       "destination": "/api/auth?_route=me" },
+    { "source": "/api/stats/history",                 "destination": "/api/stats-history" },
     { "source": "/api/members/:id",                   "destination": "/api/members?_id=:id" },
+    { "source": "/api/members/:id/renew",             "destination": "/api/members?_id=:id&_route=renew" },
     { "source": "/api/payments/submit-bill",          "destination": "/api/payments?_route=submit-bill" },
     { "source": "/api/payments/verify/:id",           "destination": "/api/payments?_route=verify&_id=:id" },
     { "source": "/api/payments/:id",                  "destination": "/api/payments?_id=:id" },

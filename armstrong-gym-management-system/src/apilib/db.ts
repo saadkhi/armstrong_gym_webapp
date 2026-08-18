@@ -59,4 +59,14 @@ export {
   insertPaymentWithBalanceUpdate,
   verifyPaymentWithBalanceUpdate,
   deletePaymentWithBalanceRecalc,
+  // renewal + duplicate-phone
+  getMemberByPhone,
+  renewMembership,
+  // historical chart data
+  getMonthlyHistory,
+  // migration runner
+  runSchemaMigrations,
+  // audit log
+  writeAuditLog,
+  getAuditLog,
 } from '../db';

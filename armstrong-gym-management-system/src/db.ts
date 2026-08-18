@@ -1009,3 +1009,289 @@ export async function deletePaymentWithBalanceRecalc(
     return { deleted: payment, member: updatedMemberRows.rows[0] ?? null };
   });
 }
+
+// ─── Duplicate phone check ─────────────────────────────────────────────────────
+export async function getMemberByPhone(phone: string): Promise<Member | null> {
+  const normalised = phone.replace(/\s/g, '');
+  const rows = await query<Member>(
+    MEMBER_SELECT + ` WHERE REPLACE(phone, ' ', '') = $1`,
+    [normalised]
+  );
+  return rows[0] ?? null;
+}
+
+// ─── Membership renewal ────────────────────────────────────────────────────────
+/**
+ * Renew a member's plan atomically:
+ *   - Extend expiryDate from MAX(today, current expiry) + planDurationMonths
+ *   - Reset amountPaid / remainingBalance for the new cycle
+ *   - Insert a verified payment record for the renewal amount
+ *   - Recalculate and persist status
+ *
+ * Returns { member, payment }.
+ */
+export async function renewMembership(
+  memberId: string,
+  opts: {
+    planType: string;
+    planCost: number;
+    amountPaid: number;
+    paymentMethod: string;
+    paymentId: string;
+    transactionId?: string;
+    notes?: string;
+    nowTs: string;
+  }
+): Promise<{ member: Member; payment: Payment }> {
+  return withTransaction(async (client) => {
+    // 1. Lock + fetch member
+    const memberRows = await client.query<Member>(
+      MEMBER_SELECT + ' WHERE id = $1 FOR UPDATE',
+      [memberId]
+    );
+    const member = memberRows.rows[0];
+    if (!member) throw new Error('Member not found');
+
+    // 2. Calculate new plan duration and expiry
+    const durationMap: Record<string, number> = {
+      Monthly: 1, Quarterly: 3, 'Half-Yearly': 6, Yearly: 12,
+    };
+    const durationMonths = durationMap[opts.planType] ?? 1;
+
+    // Start from today or current expiry — whichever is later
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const currentExpiry = new Date(member.expiryDate);
+    const renewFrom = currentExpiry > today ? currentExpiry : today;
+
+    const newExpiry = new Date(renewFrom);
+    newExpiry.setMonth(newExpiry.getMonth() + durationMonths);
+    const newExpiryStr = newExpiry.toISOString().split('T')[0];
+
+    // Determine status
+    const diffDays = Math.ceil((newExpiry.getTime() - today.getTime()) / (1000 * 3600 * 24));
+    const newStatus: 'Active' | 'Expiring' | 'Expired' =
+      diffDays < 0 ? 'Expired' : diffDays <= 7 ? 'Expiring' : 'Active';
+
+    const cost    = Number(opts.planCost);
+    const paid    = Number(opts.amountPaid);
+    const balance = Math.max(0, cost - paid);
+
+    // 3. Update member record
+    await client.query(
+      `UPDATE members
+         SET plan_type            = $1,
+             plan_duration_months = $2,
+             plan_cost            = $3,
+             amount_paid          = $4,
+             remaining_balance    = $5,
+             start_date           = $6,
+             expiry_date          = $7,
+             status               = $8
+       WHERE id = $9`,
+      [
+        opts.planType, durationMonths, cost, paid, balance,
+        renewFrom.toISOString().split('T')[0], newExpiryStr, newStatus,
+        memberId,
+      ]
+    );
+
+    // 4. Insert payment record if any amount was paid
+    const payment: Payment = {
+      id:                 opts.paymentId,
+      memberId:           member.id,
+      memberName:         member.name,
+      amount:             paid,
+      paymentMethod:      opts.paymentMethod as any,
+      date:               opts.nowTs,
+      transactionId:      opts.transactionId || `RNW-${Date.now().toString().slice(-6)}`,
+      verificationStatus: 'Verified',
+      verifiedBy:         'Armstrong Admin',
+      verifiedAt:         opts.nowTs,
+      notes:              opts.notes || `Renewal — ${opts.planType} plan`,
+    };
+
+    if (paid > 0) {
+      await client.query(
+        `INSERT INTO payments
+           (id, member_id, member_name, amount, payment_method, date,
+            transaction_id, bill_url, verification_status, verified_by, verified_at, notes)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+        [
+          payment.id, payment.memberId, payment.memberName, payment.amount,
+          payment.paymentMethod, payment.date, payment.transactionId,
+          '', payment.verificationStatus, payment.verifiedBy, payment.verifiedAt,
+          payment.notes,
+        ]
+      );
+    }
+
+    // 5. Read back updated member
+    const updatedRows = await client.query<Member>(
+      MEMBER_SELECT + ' WHERE id = $1',
+      [memberId]
+    );
+    return { member: updatedRows.rows[0], payment };
+  });
+}
+
+// ─── Historical monthly stats (last N months) ─────────────────────────────────
+export interface MonthlyHistoryPoint {
+  month: string;   // 'YYYY-MM'
+  label: string;   // 'Jan 25', 'Feb 25', …
+  income: number;
+  expenses: number;
+  profit: number;
+}
+
+/**
+ * Returns income + expenses aggregated by calendar month for the last
+ * `months` months (default 6), ordered oldest → newest.
+ * Uses a single SQL query with generate_series so months with zero
+ * activity still appear in the result.
+ */
+export async function getMonthlyHistory(months = 6): Promise<MonthlyHistoryPoint[]> {
+  const rows = await query<{
+    month: string;
+    income: string;
+    expenses: string;
+  }>(`
+    WITH months AS (
+      SELECT to_char(
+        date_trunc('month', now()) - (n || ' months')::INTERVAL,
+        'YYYY-MM'
+      ) AS month
+      FROM generate_series(${months - 1}, 0, -1) AS n
+    ),
+    income_by_month AS (
+      SELECT SUBSTRING(date, 1, 7) AS month,
+             COALESCE(SUM(amount), 0) AS income
+      FROM payments
+      GROUP BY 1
+    ),
+    expenses_by_month AS (
+      SELECT SUBSTRING(date, 1, 7) AS month,
+             COALESCE(SUM(amount), 0) AS expenses
+      FROM expenses
+      GROUP BY 1
+    )
+    SELECT
+      m.month,
+      COALESCE(i.income,   0)::TEXT AS income,
+      COALESCE(e.expenses, 0)::TEXT AS expenses
+    FROM months m
+    LEFT JOIN income_by_month   i ON i.month = m.month
+    LEFT JOIN expenses_by_month e ON e.month = m.month
+    ORDER BY m.month ASC
+  `);
+
+  return rows.map((r) => {
+    const [yyyy, mm] = r.month.split('-');
+    const date  = new Date(Number(yyyy), Number(mm) - 1, 1);
+    const label = date.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+    const income   = parseFloat(r.income);
+    const expenses = parseFloat(r.expenses);
+    return { month: r.month, label, income, expenses, profit: income - expenses };
+  });
+}
+
+// ─── Migration registry ────────────────────────────────────────────────────────
+// Import lazily so that the migration runner is only bundled when needed
+// (Vercel serverless / Express startup) and never in the browser.
+
+let _migrationsRan = false;
+
+/**
+ * Run all pending schema migrations.
+ * Safe to call on every cold start — already-applied migrations are skipped.
+ * Call this after ensureDb() during server startup.
+ */
+export async function runSchemaMigrations(): Promise<void> {
+  if (_migrationsRan) return;
+  _migrationsRan = true;
+
+  const { runMigrations }    = await import('./migrations/runner');
+  const { migration001 }     = await import('./migrations/001_add_fk_constraints');
+  const { migration002 }     = await import('./migrations/002_date_columns_to_date_type');
+  const { migration003 }     = await import('./migrations/003_audit_log_table');
+
+  await runMigrations([migration001, migration002, migration003]);
+}
+
+// ─── Audit log helpers ─────────────────────────────────────────────────────────
+
+/** Generate a simple audit-log ID */
+function auditId(): string {
+  return `AUD-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+export interface AuditEntry {
+  action:     string;           // 'member.create' | 'member.update' | 'member.delete' | 'payment.verify' | 'payment.delete' | …
+  entityType: string;
+  entityId:   string;
+  actor:      string;           // admin email or 'system'
+  before?:    Record<string, unknown> | null;
+  after?:     Record<string, unknown> | null;
+  metadata?:  Record<string, unknown> | null;
+}
+
+/**
+ * Append a row to the audit_log table.
+ * Silently no-ops when the audit_log table doesn't exist yet
+ * (pre-migration runs during first deploy).
+ */
+export async function writeAuditLog(entry: AuditEntry): Promise<void> {
+  try {
+    await execute(
+      `INSERT INTO audit_log
+         (id, action, entity_type, entity_id, actor, performed_at, before_json, after_json, metadata)
+       VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8)`,
+      [
+        auditId(),
+        entry.action,
+        entry.entityType,
+        entry.entityId,
+        entry.actor,
+        entry.before  ? JSON.stringify(entry.before)  : null,
+        entry.after   ? JSON.stringify(entry.after)   : null,
+        entry.metadata? JSON.stringify(entry.metadata): null,
+      ]
+    );
+  } catch (err: any) {
+    // Don't break the main operation if audit logging fails
+    if (!err.message?.includes('audit_log')) {
+      console.error('[audit_log] write failed:', err.message);
+    }
+  }
+}
+
+/** Fetch the last N audit log entries for an entity */
+export async function getAuditLog(
+  entityType: string,
+  entityId:   string,
+  limit = 20
+): Promise<AuditEntry[]> {
+  const rows = await query<{
+    action: string; entity_type: string; entity_id: string;
+    actor: string; performed_at: string;
+    before_json: any; after_json: any; metadata: any;
+  }>(
+    `SELECT action, entity_type, entity_id, actor, performed_at,
+            before_json, after_json, metadata
+     FROM audit_log
+     WHERE entity_type = $1 AND entity_id = $2
+     ORDER BY performed_at DESC
+     LIMIT $3`,
+    [entityType, entityId, limit]
+  );
+
+  return rows.map((r) => ({
+    action:     r.action,
+    entityType: r.entity_type,
+    entityId:   r.entity_id,
+    actor:      r.actor,
+    before:     r.before_json  ?? null,
+    after:      r.after_json   ?? null,
+    metadata:   r.metadata     ?? null,
+  }));
+}

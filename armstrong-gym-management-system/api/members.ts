@@ -5,6 +5,7 @@ import { readBody, calcMemberStatus, calcExpiry, planDuration, nowTimestamp, tod
 import {
   getMembers, getMemberById, insertMember, updateMemberRecord, deleteMemberRecord,
   nextMemberId, insertPayment, nextPaymentId, getMembersPaged, ensureDb,
+  getMemberByPhone, renewMembership,
 } from '../src/apilib/db';
 import type { Member, Payment } from '../src/types';
 
@@ -16,8 +17,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const payload = authenticateRequest(req as any);
   if (!payload) return res.status(401).json({ error: 'Unauthorized' });
 
-  // _id injected by vercel.json rewrite for /api/members/:id
-  const id = (req.query._id as string) || '';
+  // _id and _route injected by vercel.json rewrites
+  const id    = (req.query._id    as string) || '';
+  const route = (req.query._route as string) || '';
+
+  // ── POST /api/members/:id/renew ────────────────────────────────────────────
+  if (id && route === 'renew' && req.method === 'POST') {
+    try {
+      const { planType = 'Monthly', planCost, amountPaid = 0, paymentMethod = 'Cash', transactionId, notes }
+        = await readBody(req as any);
+      const payId = await nextPaymentId();
+      const { member, payment } = await renewMembership(id, {
+        planType, planCost: Number(planCost), amountPaid: Number(amountPaid),
+        paymentMethod, paymentId: payId, transactionId, notes, nowTs: nowTimestamp(),
+      });
+      return res.status(200).json({ success: true, member, payment });
+    } catch (err: any) {
+      console.error('[members/:id/renew]', err);
+      return res.status(err.message === 'Member not found' ? 404 : 500).json({ error: err.message || 'Internal server error' });
+    }
+  }
 
   // ── Collection routes (no id) ─────────────────────────────────────────────────
   if (!id) {
@@ -70,6 +89,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } = body;
 
         if (!name) return res.status(400).json({ error: 'name is required' });
+
+        // ── Duplicate phone check ──────────────────────────────────────────────
+        if (phone) {
+          const existing = await getMemberByPhone(phone);
+          if (existing) {
+            return res.status(409).json({
+              error: `Phone number is already registered to member ${existing.name} (${existing.id})`,
+            });
+          }
+        }
 
         const newId = await nextMemberId();
         const duration = planDuration(planType as string);

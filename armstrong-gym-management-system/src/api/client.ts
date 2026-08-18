@@ -104,6 +104,20 @@ export async function fetchStats(): Promise<SystemStats> {
   return res.json();
 }
 
+export interface MonthlyHistoryPoint {
+  month: string;
+  label: string;
+  income: number;
+  expenses: number;
+  profit: number;
+}
+
+export async function fetchStatsHistory(months = 6): Promise<MonthlyHistoryPoint[]> {
+  const res = await apiFetch(`${API_BASE}/stats/history?months=${months}`);
+  if (!res.ok) throw new Error('Failed to fetch stats history');
+  return res.json();
+}
+
 // ─── Members ───────────────────────────────────────────────────────────────────
 export async function fetchMembers(): Promise<Member[]> {
   const res = await apiFetch(`${API_BASE}/members`);
@@ -150,6 +164,28 @@ export async function updateMember(id: string, memberData: Partial<Member>): Pro
 export async function deleteMember(id: string): Promise<{ success: boolean; message: string }> {
   const res = await apiFetch(`${API_BASE}/members/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error('Failed to delete member');
+  return res.json();
+}
+
+export async function renewMember(
+  id: string,
+  data: {
+    planType: string;
+    planCost: number;
+    amountPaid: number;
+    paymentMethod: string;
+    transactionId?: string;
+    notes?: string;
+  }
+): Promise<{ success: boolean; member: Member; payment: Payment }> {
+  const res = await apiFetch(`${API_BASE}/members/${id}/renew`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Failed to renew membership');
+  }
   return res.json();
 }
 

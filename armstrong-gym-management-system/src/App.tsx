@@ -28,6 +28,8 @@ import {
 
 import {
   fetchStats,
+  fetchStatsHistory,
+  type MonthlyHistoryPoint,
   fetchMembers,
   createMember,
   updateMember,
@@ -177,6 +179,7 @@ export default function App() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [reminderLogs, setReminderLogs] = useState<ReminderLog[]>([]);
   const [settings, setSettings] = useState<any>(null);
+  const [chartHistory, setChartHistory] = useState<MonthlyHistoryPoint[]>([]);
 
   // Modals & Selections
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
@@ -216,7 +219,7 @@ export default function App() {
   const refreshData = async (showLoader = false) => {
     if (showLoader) setIsLoading(true);
     try {
-      const [sData, mData, pData, aData, tData, eData, lData, setRes] =
+      const [sData, mData, pData, aData, tData, eData, lData, setRes, histData] =
         await Promise.all([
           fetchStats(),
           fetchMembers(),
@@ -226,6 +229,7 @@ export default function App() {
           fetchExpenses(),
           fetchReminderLogs(),
           fetchSettings(),
+          fetchStatsHistory(6),
         ]);
 
       setStats(sData);
@@ -236,6 +240,7 @@ export default function App() {
       setExpenses(eData);
       setReminderLogs(lData);
       setSettings(setRes);
+      setChartHistory(histData);
     } catch (err) {
       console.error('Error refreshing backend data:', err);
       toast.error('Failed to load dashboard data. Please refresh.');
@@ -371,6 +376,7 @@ export default function App() {
                   members={members}
                   payments={payments}
                   attendance={attendance}
+                  chartHistory={chartHistory}
                   onNavigateTab={(tab) => setActiveTab(tab)}
                   onSelectMember={(m) => setSelectedMember(m)}
                 />
@@ -392,6 +398,7 @@ export default function App() {
                     await refreshData();
                   }}
                   onSelectMember={(m) => setSelectedMember(m)}
+                  onRefresh={refreshData}
                 />
               )}
 
@@ -421,6 +428,7 @@ export default function App() {
                     await refreshData();
                     return res;
                   }}
+                  onNavigateRenew={() => setActiveTab('members')}
                 />
               )}
 
