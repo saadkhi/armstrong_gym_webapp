@@ -111,12 +111,12 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
       doc.text('ARMSTRONG GYM MANAGEMENT SYSTEM', 14, 20);
       doc.setFontSize(12);
       doc.text(`Executive Summary Report — ${range}`, 14, 28);
-      doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, 14, 34);
+      doc.text(`Generated: ${new Date().toLocaleDateString('en-PK')}`, 14, 34);
       doc.setFontSize(10);
       doc.text('─'.repeat(80), 14, 40);
-      doc.text(`Total Income:    ₹${totalIncome.toLocaleString('en-IN')}`, 14, 48);
-      doc.text(`Total Expenses:  ₹${totalExpenses.toLocaleString('en-IN')}`, 14, 56);
-      doc.text(`Net Profit:      ₹${netProfit.toLocaleString('en-IN')}`, 14, 64);
+      doc.text(`Total Income:    Rs.${totalIncome.toLocaleString('en-PK')}`, 14, 48);
+      doc.text(`Total Expenses:  Rs.${totalExpenses.toLocaleString('en-PK')}`, 14, 56);
+      doc.text(`Net Profit:      Rs.${netProfit.toLocaleString('en-PK')}`, 14, 64);
       doc.text(`Total Members:   ${members.length}`, 14, 72);
       doc.text('─'.repeat(80), 14, 80);
       doc.setFontSize(12);
@@ -125,7 +125,7 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
       doc.setFontSize(9);
       filteredPayments.slice(0, 15).forEach((p, i) => {
         doc.text(
-          `${i + 1}. ${p.id} | ${p.memberName} (${p.memberId}) | ${p.paymentMethod} | ₹${p.amount}`,
+          `${i + 1}. ${p.id} | ${p.memberName} (${p.memberId}) | ${p.paymentMethod} | Rs.${p.amount}`,
           14, y
         );
         y += 7;
@@ -180,22 +180,22 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
       <body>
         <h1>Armstrong Gym &amp; Fitness Club</h1>
         <p>Executive Financial Report &mdash; <strong>${range}</strong></p>
-        <p>Generated: ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })}</p>
+        <p>Generated: ${new Date().toLocaleDateString('en-PK', { dateStyle: 'long' })}</p>
 
         <div class="kpis">
           <div class="kpi income">
             <div style="font-size:9pt;color:#666;text-transform:uppercase">Total Income</div>
-            <div class="val">₹${totalIncome.toLocaleString('en-IN')}</div>
+            <div class="val">Rs.${totalIncome.toLocaleString('en-PK')}</div>
             <div style="font-size:9pt;color:#666">${filteredPayments.length} transactions</div>
           </div>
           <div class="kpi expense">
             <div style="font-size:9pt;color:#666;text-transform:uppercase">Total Expenses</div>
-            <div class="val">₹${totalExpenses.toLocaleString('en-IN')}</div>
+            <div class="val">Rs.${totalExpenses.toLocaleString('en-PK')}</div>
             <div style="font-size:9pt;color:#666">${filteredExpenses.length} vouchers</div>
           </div>
           <div class="kpi profit">
             <div style="font-size:9pt;color:#666;text-transform:uppercase">Net Profit</div>
-            <div class="val">₹${netProfit.toLocaleString('en-IN')}</div>
+            <div class="val">Rs.${netProfit.toLocaleString('en-PK')}</div>
             <div style="font-size:9pt;color:#666">Income minus expenses</div>
           </div>
         </div>
@@ -210,7 +210,7 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
                 <td>${p.memberName} (${p.memberId})</td>
                 <td>${p.paymentMethod}</td>
                 <td>${p.date}</td>
-                <td>₹${Number(p.amount).toLocaleString('en-IN')}</td>
+                <td>Rs.${Number(p.amount).toLocaleString('en-PK')}</td>
               </tr>`).join('')}
           </tbody>
         </table>
@@ -225,7 +225,7 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
                 <td>${e.title}</td>
                 <td>${e.category}</td>
                 <td>${e.date}</td>
-                <td>₹${Number(e.amount).toLocaleString('en-IN')}</td>
+                <td>Rs.${Number(e.amount).toLocaleString('en-PK')}</td>
               </tr>`).join('')}
           </tbody>
         </table>
@@ -247,7 +247,7 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-extrabold text-white flex items-center gap-2">
+          <h1 className="text-base sm:text-xl font-extrabold text-white flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-emerald-400" aria-hidden="true" />
             Financial &amp; Attendance Analytics
           </h1>
@@ -260,14 +260,14 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
         <div
           role="group"
           aria-label="Report date range"
-          className="flex items-center gap-2 bg-black/60 p-1.5 rounded-xl border border-white/10"
+          className="flex items-center gap-1 sm:gap-2 bg-black/60 p-1.5 rounded-xl border border-white/10 overflow-x-auto"
         >
           {(['This Month', 'Last Month', 'This Year', 'All Time'] as const).map((r) => (
             <button
               key={r}
               onClick={() => setRange(r)}
               aria-pressed={range === r}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold whitespace-nowrap transition-all ${
                 range === r
                   ? 'bg-[#E51924] text-white font-extrabold shadow-md'
                   : 'text-white/60 hover:text-white'
@@ -280,13 +280,13 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6" role="region" aria-label="Financial summary">
+      <div className="grid grid-cols-1 xs:grid-cols-3 sm:grid-cols-3 gap-4" role="region" aria-label="Financial summary">
         <div className="glass-card border border-white/10 rounded-2xl p-5 space-y-2">
           <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">
             Total Income ({range})
           </p>
-          <p className="text-3xl font-black text-emerald-400 font-mono">
-            ₹{totalIncome.toLocaleString('en-IN')}
+          <p className="text-xl sm:text-3xl font-black text-emerald-400 font-mono">
+            Rs. {totalIncome.toLocaleString('en-PK')}
           </p>
           <p className="text-[11px] text-white/40">{filteredPayments.length} transactions</p>
         </div>
@@ -295,8 +295,8 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
           <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">
             Total Expenses ({range})
           </p>
-          <p className="text-3xl font-black text-rose-400 font-mono">
-            ₹{totalExpenses.toLocaleString('en-IN')}
+          <p className="text-xl sm:text-3xl font-black text-rose-400 font-mono">
+            Rs. {totalExpenses.toLocaleString('en-PK')}
           </p>
           <p className="text-[11px] text-white/40">{filteredExpenses.length} vouchers</p>
         </div>
@@ -305,15 +305,15 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
           <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">
             Net Profit ({range})
           </p>
-          <p className={`text-3xl font-black font-mono ${netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-            ₹{netProfit.toLocaleString('en-IN')}
+          <p className={`text-xl sm:text-3xl font-black font-mono ${netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+            Rs. {netProfit.toLocaleString('en-PK')}
           </p>
           <p className="text-[11px] text-white/40">Income minus operational expenses</p>
         </div>
       </div>
 
       {/* Export buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {/* Print */}
         <button
           onClick={handlePrint}
@@ -325,7 +325,7 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
               <Printer className="w-5 h-5" aria-hidden="true" />
             </div>
             <div className="text-left">
-              <p className="text-sm font-bold text-white group-hover:text-amber-400 transition-colors">
+              <p className="text-xs sm:text-sm font-bold text-white group-hover:text-amber-400 transition-colors">
                 Print Report
               </p>
               <p className="text-xs text-white/50">Browser print dialog</p>

@@ -498,7 +498,7 @@ async function startServer() {
       await insertPaymentWithBalanceUpdate(newPayment, false);
       return res.status(201).json({
         success: true,
-        message: `Bill of ₹${payAmt} submitted. Gym admin will verify and update your record.`,
+        message: `Bill of Rs. ${payAmt} submitted. Gym admin will verify and update your record.`,
         payment: newPayment,
       });
     } catch (err) { return res.status(500).json({ error: 'Internal server error' }); }
@@ -516,7 +516,7 @@ async function startServer() {
       const { payment: updatedPayment, member: updatedMember } =
         await verifyPaymentWithBalanceUpdate(req.params.id, 'Armstrong Admin', now);
 
-      const receiptMsg = `Dear ${memberBefore.name}, your payment of ₹${paymentBefore.amount} (Ref: ${paymentBefore.transactionId || paymentBefore.id}) has been VERIFIED on the Armstrong Gym Portal! Remaining Balance: ₹${updatedMember?.remainingBalance ?? 0}. Thank you!`;
+      const receiptMsg = `Dear ${memberBefore.name}, your payment of Rs. ${paymentBefore.amount} (Ref: ${paymentBefore.transactionId || paymentBefore.id}) has been VERIFIED on the Armstrong Gym Portal! Remaining Balance: Rs. ${updatedMember?.remainingBalance ?? 0}. Thank you!`;
       const logId = await nextLogId();
       await insertReminderLog({ id: logId, memberId: memberBefore.id, memberName: memberBefore.name, phone: memberBefore.phone, type: 'Custom', message: receiptMsg, sentAt: now, status: 'Sent' });
       return res.json({
@@ -643,7 +643,7 @@ async function startServer() {
       let msg: string = customMessage;
       if (!msg) {
         switch (type) {
-          case 'Fee Reminder':    msg = `Dear ${member.name}, your remaining balance of ₹${member.remainingBalance} for Armstrong Gym is due. Kindly make payment at your earliest convenience. Thank you!`; break;
+          case 'Fee Reminder':    msg = `Dear ${member.name}, your remaining balance of Rs. ${member.remainingBalance} for Armstrong Gym is due. Kindly make payment at your earliest convenience. Thank you!`; break;
           case 'Expiry Reminder': msg = `Dear ${member.name}, your Armstrong Gym membership expires on ${member.expiryDate}. Renew now to continue uninterrupted workouts!`; break;
           case 'Expired Notice':  msg = `Dear ${member.name}, your Armstrong Gym membership expired on ${member.expiryDate}. Please renew your plan to reactivate access.`; break;
           default: msg = `Hello ${member.name}, greetings from Armstrong Gym! We hope you are having a great training session.`;
@@ -691,7 +691,7 @@ async function startServer() {
       for (const m of unpaid) {
         const msg = customTemplate
           ? customTemplate.replace(/{Name}/g, m.name).replace(/{Balance}/g, String(m.remainingBalance)).replace(/{Plan}/g, m.planType).replace(/{Expiry}/g, m.expiryDate)
-          : `Dear ${m.name}, your Armstrong Gym fee balance of ₹${m.remainingBalance} for your ${m.planType} plan is pending. Please make your payment and submit the receipt to gym admin. Thank you!`;
+          : `Dear ${m.name}, your Armstrong Gym fee balance of Rs. ${m.remainingBalance} for your ${m.planType} plan is pending. Please make your payment and submit the receipt to gym admin. Thank you!`;
 
         const twilioResult = await sendWhatsAppViaTwilio(m.phone, msg, {
           accountSid: settings.twilioAccountSid,
@@ -745,7 +745,7 @@ async function startServer() {
         if (status !== m.status) await updateMemberRecord(m.id, { status });
         if (Number(m.remainingBalance) > 0) {
           feeRemindersSent++;
-          await insertReminderLog({ id: await nextLogId(), memberId: m.id, memberName: m.name, phone: m.phone, type: 'Fee Reminder', message: `[AUTO CRON] Dear ${m.name}, outstanding dues of ₹${m.remainingBalance} detected. Kindly pay at gym reception.`, sentAt: now, status: 'Sent' });
+          await insertReminderLog({ id: await nextLogId(), memberId: m.id, memberName: m.name, phone: m.phone, type: 'Fee Reminder', message: `[AUTO CRON] Dear ${m.name}, outstanding dues of Rs. ${m.remainingBalance} detected. Kindly pay at gym reception.`, sentAt: now, status: 'Sent' });
         }
         if (status === 'Expiring') {
           expiryRemindersSent++;

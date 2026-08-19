@@ -155,7 +155,7 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-extrabold text-white flex items-center gap-2">
             <Dumbbell className="w-5 h-5 text-emerald-400" />
@@ -176,7 +176,7 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
       </div>
 
       {/* Trainers Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {trainers.map((t) => (
           <div
             key={t.id}
@@ -224,7 +224,7 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
               <div>
                 <span className="text-[10px] text-white/40 block">Monthly Salary</span>
                 <span className="font-bold text-emerald-400 font-mono">
-                  ₹{t.salary.toLocaleString('en-PK')}
+                  Rs.{t.salary.toLocaleString('en-PK')}
                 </span>
               </div>
 
@@ -340,7 +340,7 @@ export const TrainersModule: React.FC<TrainersModuleProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="trainer-salary" className="block text-xs font-semibold text-white/80 mb-1">Monthly Salary (₹)</label>
+                  <label htmlFor="trainer-salary" className="block text-xs font-semibold text-white/80 mb-1">Monthly Salary (Rs.)</label>
                   <input id="trainer-salary" type="number" value={formSalary} onChange={(e) => setFormSalary(Number(e.target.value))}
                     className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]" />
                 </div>

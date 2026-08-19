@@ -67,7 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           memberName: m.name,
           phone: m.phone,
           type: 'Fee Reminder',
-          message: `[AUTO CRON] Dear ${m.name}, outstanding dues of ₹${m.remainingBalance} detected. Kindly pay at gym reception.`,
+          message: `[AUTO CRON] Dear ${m.name}, outstanding dues of Rs. ${m.remainingBalance} detected. Kindly pay at gym reception.`,
           sentAt: now,
           status: 'Sent',
         };

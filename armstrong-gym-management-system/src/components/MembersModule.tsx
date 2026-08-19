@@ -227,9 +227,9 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
   return (
     <div className="space-y-6 pb-12">
       {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-extrabold text-white flex items-center gap-2">
+          <h1 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2">
             <Users className="w-5 h-5 text-emerald-400" />
             <span>Members Directory</span>
           </h1>
@@ -248,7 +248,7 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-white/3 border border-white/8 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-white/3 border border-white/8 rounded-2xl p-3 sm:p-4 flex flex-col gap-3">
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 text-white/30 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
@@ -260,7 +260,7 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+        <div className="flex items-center gap-1.5 w-full overflow-x-auto pb-1 scrollbar-none">
           {(['All', 'Active', 'Expiring', 'Expired'] as const).map((st) => (
             <button
               key={st}
@@ -279,11 +279,11 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
 
       {/* Members Table */}
       <div className="glass-card border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left text-xs mobile-card-table">
             <thead className="bg-white/5 text-white/50 font-semibold border-b border-white/10 uppercase text-[10px] tracking-wider">
               <tr>
-                <th className="py-3.5 px-4">Member</th>
+                <th className="py-3 px-3 sm:px-4">Member</th>
                 <th className="py-3.5 px-4">Plan & Expiry</th>
                 <th className="py-3.5 px-4">Status</th>
                 <th className="py-3.5 px-4">Paid / Balance</th>
@@ -295,7 +295,7 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
               {filteredMembers.length > 0 ? (
                 filteredMembers.map((m) => (
                   <tr key={m.id} className="hover:bg-white/5 transition-colors">
-                    <td className="py-3.5 px-4">
+                    <td className="py-3 px-3 sm:px-4" data-label="Member">
                       <div className="flex items-center gap-3">
                         <img
                           src={m.photoUrl}
@@ -342,11 +342,11 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
 
                     <td className="py-3.5 px-4 font-mono">
                       <p className="text-emerald-400 font-bold">
-                        ₹{m.amountPaid.toLocaleString('en-PK')}
+                        Rs. {m.amountPaid.toLocaleString('en-PK')}
                       </p>
                       {m.remainingBalance > 0 ? (
                         <p className="text-[10px] text-rose-400 font-bold">
-                          Due: ₹{m.remainingBalance.toLocaleString('en-PK')}
+                          Due: Rs. {m.remainingBalance.toLocaleString('en-PK')}
                         </p>
                       ) : (
                         <p className="text-[10px] text-white/40">Paid in Full</p>
@@ -456,21 +456,21 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
                 <label htmlFor="member-plan" className="block text-xs font-semibold text-white/80 mb-1">Membership Plan Type</label>
                 <select id="member-plan" value={formPlanType} onChange={(e) => handlePlanTypeChange(e.target.value as MembershipPlanType)}
                   className="w-full px-3.5 py-2 text-xs bg-[#0D0D0D] text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]">
-                  <option value="Monthly">Monthly Pass (1 Month — ₹2,500)</option>
-                  <option value="Quarterly">Quarterly Beast (3 Months — ₹6,000)</option>
-                  <option value="Half-Yearly">Half-Yearly Elite (6 Months — ₹10,000)</option>
-                  <option value="Yearly">Yearly Champion (12 Months — ₹18,000)</option>
+                  <option value="Monthly">Monthly Pass (1 Month — Rs. 2,500)</option>
+                  <option value="Quarterly">Quarterly Beast (3 Months — Rs. 6,000)</option>
+                  <option value="Half-Yearly">Half-Yearly Elite (6 Months — Rs. 10,000)</option>
+                  <option value="Yearly">Yearly Champion (12 Months — Rs. 18,000)</option>
                 </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="member-plan-cost" className="block text-xs font-semibold text-white/80 mb-1">Total Plan Cost (₹)</label>
+                  <label htmlFor="member-plan-cost" className="block text-xs font-semibold text-white/80 mb-1">Total Plan Cost (Rs.)</label>
                   <input id="member-plan-cost" type="number" value={formPlanCost} onChange={(e) => setFormPlanCost(Number(e.target.value))}
                     className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]" />
                 </div>
                 <div>
-                  <label htmlFor="member-amount-paid" className="block text-xs font-semibold text-white/80 mb-1">Initial Payment Paid (₹)</label>
+                  <label htmlFor="member-amount-paid" className="block text-xs font-semibold text-white/80 mb-1">Initial Payment Paid (Rs.)</label>
                   <input id="member-amount-paid" type="number" value={formAmountPaid} onChange={(e) => setFormAmountPaid(Number(e.target.value))}
                     className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924]" />
                 </div>
@@ -645,21 +645,21 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
                 <label htmlFor="renew-plan" className="block text-xs font-semibold text-white/80 mb-1">New Plan *</label>
                 <select id="renew-plan" value={renewPlanType} onChange={(e) => handleRenewPlanChange(e.target.value as MembershipPlanType)}
                   className="w-full px-3.5 py-2 text-xs bg-[#0D0D0D] text-white rounded-xl border border-white/10 focus:outline-none focus:border-emerald-500">
-                  <option value="Monthly">Monthly — ₹2,500</option>
-                  <option value="Quarterly">Quarterly — ₹6,000</option>
-                  <option value="Half-Yearly">Half-Yearly — ₹10,000</option>
-                  <option value="Yearly">Yearly — ₹18,000</option>
+                  <option value="Monthly">Monthly — Rs. 2,500</option>
+                  <option value="Quarterly">Quarterly — Rs. 6,000</option>
+                  <option value="Half-Yearly">Half-Yearly — Rs. 10,000</option>
+                  <option value="Yearly">Yearly — Rs. 18,000</option>
                 </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="renew-cost" className="block text-xs font-semibold text-white/80 mb-1">Plan Cost (₹)</label>
+                  <label htmlFor="renew-cost" className="block text-xs font-semibold text-white/80 mb-1">Plan Cost (Rs.)</label>
                   <input id="renew-cost" type="number" min={0} value={renewPlanCost} onChange={(e) => setRenewPlanCost(Number(e.target.value))}
                     className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-emerald-500 font-mono" />
                 </div>
                 <div>
-                  <label htmlFor="renew-paid" className="block text-xs font-semibold text-white/80 mb-1">Amount Paid (₹)</label>
+                  <label htmlFor="renew-paid" className="block text-xs font-semibold text-white/80 mb-1">Amount Paid (Rs.)</label>
                   <input id="renew-paid" type="number" min={0} value={renewAmountPaid} onChange={(e) => setRenewAmountPaid(Number(e.target.value))}
                     className="w-full px-3.5 py-2 text-xs bg-white/5 text-emerald-400 rounded-xl border border-white/10 focus:outline-none focus:border-emerald-500 font-mono font-bold" />
                 </div>
@@ -686,7 +686,7 @@ export const MembersModule: React.FC<MembersModuleProps> = ({
               {renewAmountPaid < renewPlanCost && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold">
                   <AlertTriangle className="w-4 h-4 shrink-0" aria-hidden="true" />
-                  Partial payment — ₹{(renewPlanCost - renewAmountPaid).toLocaleString('en-IN')} will remain as outstanding balance.
+                  Partial payment — Rs. {(renewPlanCost - renewAmountPaid).toLocaleString('en-PK')} will remain as outstanding balance.
                 </div>
               )}
 

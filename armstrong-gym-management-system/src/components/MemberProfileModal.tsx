@@ -58,7 +58,7 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
                 onClick={() => { onClose(); onRecordPaymentClick(member.id); }}
                 className="px-3 py-1.5 rounded-xl bg-[#E51924] text-white font-black text-xs hover:bg-red-600 transition-all shadow-md shadow-[#E51924]/25"
               >
-                Clear Due: ₹{member.remainingBalance.toLocaleString('en-IN')}
+                Clear Due: Rs. {member.remainingBalance.toLocaleString('en-PK')}
               </button>
             ) : (
               <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
@@ -81,9 +81,9 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
             </div>
             <p className="text-[10px] font-mono text-[#E51924] font-bold">QR ID: {member.id}</p>
             <div className="w-full pt-2 border-t border-white/8 text-[11px] text-white/50 space-y-1 text-left">
-              <p>Total Paid: <strong className="text-white">₹{member.amountPaid}</strong></p>
-              <p>Plan Cost:  <strong className="text-white">₹{member.planCost}</strong></p>
-              <p>Remaining:  <strong className="text-[#E51924]">₹{member.remainingBalance}</strong></p>
+              <p>Total Paid: <strong className="text-white">Rs. {member.amountPaid}</strong></p>
+              <p>Plan Cost:  <strong className="text-white">Rs. {member.planCost}</strong></p>
+              <p>Remaining:  <strong className="text-[#E51924]">Rs. {member.remainingBalance}</strong></p>
             </div>
           </div>
 
@@ -110,7 +110,7 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
                         <td className="py-2 px-3 font-bold text-white/80">{p.id}</td>
                         <td className="py-2 px-3 text-white/40">{p.date.split(' ')[0]}</td>
                         <td className="py-2 px-3 text-white/60">{p.paymentMethod}</td>
-                        <td className="py-2 px-3 text-right text-emerald-400 font-bold">₹{p.amount.toLocaleString('en-IN')}</td>
+                        <td className="py-2 px-3 text-right text-emerald-400 font-bold">Rs. {p.amount.toLocaleString('en-PK')}</td>
                       </tr>
                     )) : (
                       <tr><td colSpan={4} className="py-4 text-center text-white/30 text-xs">No payments recorded.</td></tr>

@@ -60,7 +60,7 @@ export const GymDashboard: React.FC<GymDashboardProps> = ({
       }))
     : [
         {
-          month:    new Date().toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }),
+          month:    new Date().toLocaleDateString('en-PK', { month: 'short', year: '2-digit' }),
           income:   stats.monthlyIncome,
           expenses: stats.monthlyExpenses,
           profit:   stats.netProfit,
@@ -74,10 +74,10 @@ export const GymDashboard: React.FC<GymDashboardProps> = ({
       {/* Header Overview Banner */}
       <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
         <div>
-          <h2 className="text-4xl font-black tracking-wide text-white uppercase">OVERVIEW</h2>
+          <h2 className="text-2xl sm:text-4xl font-black tracking-wide text-white uppercase">OVERVIEW</h2>
           <p className="text-sm opacity-50 font-medium">Performance stats & financial summary</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => onNavigateTab('payments')}
             className="glass-card px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all border border-white/20"
@@ -123,12 +123,12 @@ export const GymDashboard: React.FC<GymDashboardProps> = ({
         {/* Active Members */}
         <div
           onClick={() => onNavigateTab('members')}
-          className="glass-card p-5 rounded-2xl cursor-pointer transition-all hover:bg-white/5 group border border-white/10"
+          className="glass-card p-4 sm:p-5 rounded-2xl cursor-pointer transition-all hover:bg-white/5 group border border-white/10"
         >
           <p className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-1">
             Total Active Members
           </p>
-          <h3 className="stat-val text-4xl text-white">{stats.activeMembers}</h3>
+          <h3 className="stat-val text-2xl sm:text-4xl text-white">{stats.activeMembers}</h3>
           <p className="text-[10px] text-emerald-400 font-extrabold uppercase tracking-wider mt-2">
             Total Enrolled: {stats.totalMembers}
           </p>
@@ -143,7 +143,7 @@ export const GymDashboard: React.FC<GymDashboardProps> = ({
             Daily Revenue
           </p>
           <h3 className="stat-val text-4xl text-white">
-            ₹{stats.todaysIncome.toLocaleString('en-PK')}
+            {stats.todaysIncome.toLocaleString('en-PK')}
           </h3>
           <p className="text-[10px] text-cyan-400 font-extrabold uppercase tracking-wider mt-2">
             Today's Collections
@@ -158,7 +158,7 @@ export const GymDashboard: React.FC<GymDashboardProps> = ({
           <p className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-1">
             Expiring Soon
           </p>
-          <h3 className="stat-val text-4xl text-[#ff3e3e]">{stats.expiringMembers}</h3>
+          <h3 className="stat-val text-2xl sm:text-4xl text-[#ff3e3e]">{stats.expiringMembers}</h3>
           <p className="text-[10px] opacity-40 mt-2 uppercase font-bold tracking-wider">
             Next 7 Days
           </p>
@@ -172,11 +172,11 @@ export const GymDashboard: React.FC<GymDashboardProps> = ({
           <p className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-1">
             Net Monthly Profit
           </p>
-          <h3 className={`stat-val text-4xl ${stats.netProfit >= 0 ? 'text-white' : 'text-[#ff3e3e]'}`}>
-            ₹{stats.netProfit.toLocaleString('en-PK')}
+          <h3 className={`stat-val text-2xl sm:text-4xl ${stats.netProfit >= 0 ? 'text-white' : 'text-[#ff3e3e]'}`}>
+            {stats.netProfit >= 0 ? "" : "-"}Rs. {Math.abs(stats.netProfit).toLocaleString('en-PK')}
           </h3>
           <p className="text-[10px] opacity-40 mt-2 uppercase font-bold tracking-wider">
-            Rev: ₹{stats.monthlyIncome.toLocaleString('en-PK')}
+            Rev: Rs. {stats.monthlyIncome.toLocaleString('en-PK')}
           </p>
         </div>
       </section>
@@ -193,7 +193,7 @@ export const GymDashboard: React.FC<GymDashboardProps> = ({
               <p className="text-[10px] opacity-40 uppercase tracking-wider">Monthly Financial Performance</p>
             </div>
             <div className="flex items-center gap-4 text-[10px] font-extrabold uppercase tracking-widest">
-              <span className="flex items-center gap-1.5 text-emerald-400">
+              <span className="hidden xs:flex items-center gap-1.5 text-emerald-400">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" /> Income
               </span>
               <span className="flex items-center gap-1.5 text-[#ff3e3e]">
@@ -202,7 +202,7 @@ export const GymDashboard: React.FC<GymDashboardProps> = ({
             </div>
           </div>
 
-          <div className="h-64 w-full pt-2">
+          <div className="h-36 sm:h-44 lg:h-64 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
                 <defs>
@@ -217,7 +217,7 @@ export const GymDashboard: React.FC<GymDashboardProps> = ({
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#ffffff" opacity={0.08} />
                 <XAxis dataKey="month" stroke="#ffffff" opacity={0.4} fontSize={10} fontStyle="normal" />
-                <YAxis stroke="#ffffff" opacity={0.4} fontSize={10} />
+                <YAxis stroke="#ffffff" opacity={0.4} fontSize={10} width={30} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#0a0a0a',
@@ -338,7 +338,7 @@ export const GymDashboard: React.FC<GymDashboardProps> = ({
                   </p>
                 </div>
                 <span className="text-xs font-black text-emerald-400 font-mono">
-                  +₹{p.amount.toLocaleString('en-PK')}
+                  +Rs. {p.amount.toLocaleString('en-PK')}
                 </span>
               </div>
             ))}

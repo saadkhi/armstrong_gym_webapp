@@ -203,7 +203,7 @@ export const initialPayments: Payment[] = [
     verificationStatus: 'Verified',
     verifiedBy: 'Armstrong Admin',
     verifiedAt: `${tenDaysAgoStr} 14:20:00`,
-    notes: 'Partial payment. ₹1,500 balance remaining.',
+    notes: 'Partial payment. Rs. 1,500 balance remaining.',
   },
   {
     id: 'PAY-1003',
@@ -374,7 +374,7 @@ export const initialReminderLogs: ReminderLog[] = [
     memberName: 'Zainab Fatima',
     phone: '+92 301 9876543',
     type: 'Fee Reminder',
-    message: 'Dear Zainab Fatima, your remaining balance of ₹1,500 for Armstrong Gym is due. Kindly settle at your earliest.',
+    message: 'Dear Zainab Fatima, your remaining balance of Rs. 1,500 for Armstrong Gym is due. Kindly settle at your earliest.',
     sentAt: `${todayStr} 09:00:00`,
     status: 'Sent',
   },

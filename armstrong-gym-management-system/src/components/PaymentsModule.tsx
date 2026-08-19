@@ -184,8 +184,8 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
       </div>
 
       {/* Sub-Tabs (Payment Records vs Pending Verification) */}
-      <div className="flex flex-wrap items-center justify-between gap-4 glass-card border border-white/10 rounded-2xl p-2.5">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 glass-card border border-white/10 rounded-2xl p-2.5">
+        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
           <button
             onClick={() => setActiveSubTab('records')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
@@ -264,7 +264,7 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
 
                       <div className="text-right font-mono">
                         <span className="text-lg font-black text-amber-400">
-                          ₹{p.amount.toLocaleString('en-PK')}
+                          Rs. {p.amount.toLocaleString('en-PK')}
                         </span>
                         <p className="text-[10px] text-white/40">{p.date}</p>
                       </div>
@@ -292,7 +292,7 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
                           Current Due Balance
                         </p>
                         <p className="font-mono text-rose-400 font-bold">
-                          ₹{member ? member.remainingBalance.toLocaleString('en-PK') : 0}
+                          Rs. {member ? member.remainingBalance.toLocaleString('en-PK') : 0}
                         </p>
                       </div>
 
@@ -301,7 +301,7 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
                           Balance After Approval
                         </p>
                         <p className="font-mono text-emerald-400 font-bold">
-                          ₹{member ? Math.max(0, member.remainingBalance - p.amount).toLocaleString('en-PK') : 0}
+                          Rs. {member ? Math.max(0, member.remainingBalance - p.amount).toLocaleString('en-PK') : 0}
                         </p>
                       </div>
                     </div>
@@ -371,8 +371,8 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
       ) : (
         /* Payments Table View */
         <div className="glass-card border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full text-left text-xs mobile-card-table">
               <thead className="bg-white/5 text-white/50 font-semibold border-b border-white/10 uppercase text-[10px] tracking-wider">
                 <tr>
                   <th className="py-3.5 px-4">Receipt ID</th>
@@ -414,8 +414,8 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
                         {p.date}
                       </td>
 
-                      <td className="py-3.5 px-4 font-mono font-black text-emerald-400 text-sm">
-                        ₹{p.amount.toLocaleString('en-PK')}
+                      <td className="py-3 px-3 sm:px-4 font-mono font-black text-emerald-400 text-sm" data-label="Amount">
+                        Rs. {p.amount.toLocaleString('en-PK')}
                       </td>
 
                       <td className="py-3.5 px-4">
@@ -496,14 +496,14 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
                   <option value="">-- Choose Member --</option>
                   {members.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.name} ({m.id}) — Due: ₹{m.remainingBalance.toLocaleString('en-IN')}
+                      {m.name} ({m.id}) — Due: Rs. {m.remainingBalance.toLocaleString('en-PK')}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label htmlFor="pay-amount" className="block text-xs font-semibold text-white/80 mb-1">Payment Amount (₹) *</label>
+                <label htmlFor="pay-amount" className="block text-xs font-semibold text-white/80 mb-1">Payment Amount (Rs.) *</label>
                 <input id="pay-amount" type="number" required min={1} value={formAmount || ''} onChange={(e) => setFormAmount(Number(e.target.value))}
                   placeholder="Enter amount"
                   className="w-full px-3.5 py-2 text-xs bg-white/5 text-emerald-400 rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924] font-mono font-bold" />
@@ -653,7 +653,7 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
               <div className="border-t border-white/10 pt-3 flex justify-between items-baseline text-sm">
                 <span className="font-bold text-white/90">Amount Received:</span>
                 <span className="font-black text-emerald-400 text-lg">
-                  ₹{selectedReceipt.amount.toLocaleString('en-PK')}
+                  Rs. {selectedReceipt.amount.toLocaleString('en-PK')}
                 </span>
               </div>
             </div>
@@ -672,7 +672,7 @@ export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
       <ConfirmDialog
         open={!!confirmTarget}
         title="Delete Payment"
-        message={`Delete payment ${confirmTarget?.id} of ₹${confirmTarget?.amount?.toLocaleString('en-PK')}? Member balance will be recalculated and this cannot be undone.`}
+        message={`Delete payment ${confirmTarget?.id} of Rs.${confirmTarget?.amount?.toLocaleString('en-PK')}? Member balance will be recalculated and this cannot be undone.`}
         confirmLabel="Delete"
         onConfirm={async () => {
           if (!confirmTarget) return;

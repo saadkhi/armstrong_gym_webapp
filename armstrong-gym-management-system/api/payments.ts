@@ -74,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       return res.status(201).json({
         success: true,
-        message: `Transaction bill of ₹${paymentAmount} submitted! Gym admin will verify and update your portal record.`,
+        message: `Transaction bill of Rs. ${paymentAmount} submitted! Gym admin will verify and update your portal record.`,
         payment: newPayment,
       });
     } catch (err: any) {
@@ -103,7 +103,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { payment: updatedPayment, member: updatedMember } =
         await verifyPaymentWithBalanceUpdate(id, 'Armstrong Admin', now);
 
-      const receiptMsg = `Dear ${memberBefore.name}, your transaction payment of ₹${paymentBefore.amount} (Ref: ${paymentBefore.transactionId || paymentBefore.id}) has been VERIFIED & UPDATED on the Armstrong Gym Portal! Remaining Balance: ₹${updatedMember?.remainingBalance ?? 0}. Thank you!`;
+      const receiptMsg = `Dear ${memberBefore.name}, your transaction payment of Rs. ${paymentBefore.amount} (Ref: ${paymentBefore.transactionId || paymentBefore.id}) has been VERIFIED & UPDATED on the Armstrong Gym Portal! Remaining Balance: Rs. ${updatedMember?.remainingBalance ?? 0}. Thank you!`;
 
       const logId = await nextLogId();
       const log: ReminderLog = {

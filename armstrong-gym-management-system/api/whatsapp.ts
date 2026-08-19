@@ -22,7 +22,7 @@ function buildMessage(
   if (customMessage) return customMessage;
   switch (type) {
     case 'Fee Reminder':
-      return `Dear ${memberName}, your remaining balance of ₹${remainingBalance} for Armstrong Gym is due. Kindly make payment at your earliest convenience. Thank you!`;
+      return `Dear ${memberName}, your remaining balance of Rs. ${remainingBalance} for Armstrong Gym is due. Kindly make payment at your earliest convenience. Thank you!`;
     case 'Expiry Reminder':
       return `Dear ${memberName}, your Armstrong Gym membership expires on ${expiryDate}. Renew now to continue uninterrupted workouts!`;
     case 'Expired Notice':

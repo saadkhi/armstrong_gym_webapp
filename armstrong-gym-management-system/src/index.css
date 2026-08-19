@@ -48,6 +48,64 @@
 .admin-border        { border-color: rgba(255,255,255,0.08); }
 .admin-border-accent { border-color: rgba(229, 25, 36, 0.35); }
 
+/* ── Mobile-responsive table → card stack ───────────────────────────── */
+/* Usage: wrap <table> in <div class="table-responsive"> */
+.table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* On small screens, tables collapse to cards */
+@media (max-width: 639px) {
+  .mobile-card-table thead { display: none; }
+  .mobile-card-table tbody tr {
+    display: block;
+    margin-bottom: 0.75rem;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+  }
+  .mobile-card-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.35rem 0;
+    border: none;
+    font-size: 0.7rem;
+  }
+  .mobile-card-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255,255,255,0.4);
+    font-size: 0.6rem;
+    flex-shrink: 0;
+    margin-right: 0.5rem;
+  }
+  .mobile-card-table tbody td:last-child {
+    justify-content: flex-end;
+    padding-top: 0.5rem;
+    margin-top: 0.25rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+}
+
+/* ── Safe viewport height for mobile browsers ───────────────────────── */
+.h-screen-safe { height: 100dvh; }
+
+/* ── Prevent horizontal overflow app-wide ───────────────────────────── */
+#root { overflow-x: hidden; max-width: 100vw; }
+
+/* ── Touch-friendly tap targets ─────────────────────────────────────── */
+@media (max-width: 639px) {
+  button, a, [role="button"] { min-height: 40px; }
+  input, select, textarea    { font-size: 16px !important; } /* prevent iOS zoom */
+}
+
+/* ── Admin panel mobile padding ─────────────────────────────────────── */
+@media (max-width: 639px) {
+  main { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+}
+
 /* ── Focus-visible ring (task 13) ───────────────────────────────────── */
 :focus-visible {
   outline: 2px solid #E51924;

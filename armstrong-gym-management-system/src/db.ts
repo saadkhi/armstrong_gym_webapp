@@ -1190,7 +1190,7 @@ export async function getMonthlyHistory(months = 6): Promise<MonthlyHistoryPoint
   return rows.map((r) => {
     const [yyyy, mm] = r.month.split('-');
     const date  = new Date(Number(yyyy), Number(mm) - 1, 1);
-    const label = date.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+    const label = date.toLocaleDateString('en-PK', { month: 'short', year: '2-digit' });
     const income   = parseFloat(r.income);
     const expenses = parseFloat(r.expenses);
     return { month: r.month, label, income, expenses, profit: income - expenses };

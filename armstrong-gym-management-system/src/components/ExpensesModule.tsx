@@ -93,7 +93,7 @@ export const ExpensesModule: React.FC<ExpensesModuleProps> = ({
       </div>
 
       {/* Summary Banner */}
-      <div className="glass-card border border-white/10 rounded-2xl p-5 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="glass-card border border-white/10 rounded-2xl p-4 flex flex-col gap-3">
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 text-white/40 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
@@ -108,15 +108,15 @@ export const ExpensesModule: React.FC<ExpensesModuleProps> = ({
         <div className="flex items-baseline gap-2 bg-black/60 px-4 py-2 rounded-xl border border-white/10">
           <span className="text-xs text-white/50 font-medium">Total Filtered Outgoings:</span>
           <span className="text-lg font-black text-rose-400 font-mono">
-            ₹{totalExpenseSum.toLocaleString('en-PK')}
+            Rs. {totalExpenseSum.toLocaleString('en-PK')}
           </span>
         </div>
       </div>
 
       {/* Expenses Table */}
       <div className="glass-card border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left text-xs mobile-card-table">
             <thead className="bg-white/5 text-white/40 font-semibold border-b border-white/10 uppercase text-[10px] tracking-wider">
               <tr>
                 <th className="py-3.5 px-4">Expense ID</th>
@@ -131,7 +131,7 @@ export const ExpensesModule: React.FC<ExpensesModuleProps> = ({
               {filteredExpenses.length > 0 ? (
                 filteredExpenses.map((e) => (
                   <tr key={e.id} className="hover:bg-white/5 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-bold text-white/40">{e.id}</td>
+                    <td className="py-3 px-3 sm:px-4 font-mono font-bold text-white/40" data-label="ID">{e.id}</td>
 
                     <td className="py-3.5 px-4">
                       <p className="font-bold text-white">{e.title}</p>
@@ -144,10 +144,10 @@ export const ExpensesModule: React.FC<ExpensesModuleProps> = ({
                       </span>
                     </td>
 
-                    <td className="py-3.5 px-4 font-mono text-white/70">{e.date}</td>
+                    <td className="py-3 px-3 sm:px-4 font-mono text-white/70" data-label="Date">{e.date}</td>
 
-                    <td className="py-3.5 px-4 font-mono font-black text-rose-400 text-sm">
-                      ₹{e.amount.toLocaleString('en-PK')}
+                    <td className="py-3 px-3 sm:px-4 font-mono font-black text-rose-400 text-sm" data-label="Amount">
+                      Rs. {e.amount.toLocaleString('en-PK')}
                     </td>
 
                     <td className="py-3.5 px-4 text-right">
@@ -194,7 +194,7 @@ export const ExpensesModule: React.FC<ExpensesModuleProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="expense-amount" className="block text-xs font-semibold text-white/80 mb-1">Amount (₹) *</label>
+                  <label htmlFor="expense-amount" className="block text-xs font-semibold text-white/80 mb-1">Amount (Rs.) *</label>
                   <input id="expense-amount" type="number" required min={1} value={formAmount || ''} onChange={(e) => setFormAmount(Number(e.target.value))}
                     className="w-full px-3.5 py-2 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924] font-mono font-bold" />
                 </div>
@@ -237,7 +237,7 @@ export const ExpensesModule: React.FC<ExpensesModuleProps> = ({
       <ConfirmDialog
         open={!!confirmTarget}
         title="Delete Expense"
-        message={`Delete "${confirmTarget?.title}" (₹${confirmTarget?.amount?.toLocaleString('en-PK')})? This record will be permanently removed.`}
+        message={`Delete "${confirmTarget?.title}" (Rs.${confirmTarget?.amount?.toLocaleString('en-PK')})? This record will be permanently removed.`}
         confirmLabel="Delete"
         onConfirm={async () => {
           if (!confirmTarget) return;

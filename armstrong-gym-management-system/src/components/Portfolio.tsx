@@ -54,29 +54,29 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
         '@id': 'https://armstrong-gym.vercel.app/#gym',
         name: 'Armstrong Gym & Fitness Club',
         description:
-          'Premium strength training facility in Bandra West, Mumbai. Rogue barbells, certified coaches, QR attendance, steam sauna and personalised nutrition plans.',
+          'Premium strength training facility in Gulzar-e-Hijri, Karachi. Heavy lifting equipment, certified coaches, QR attendance, and personalised nutrition plans.',
         url: 'https://armstrong-gym.vercel.app/',
-        telephone: '+91-98765-43210',
-        email: 'info@armstronggym.in',
+        telephone: '+923322464479',
+        email: 'info@armstronggym.pk',
         image: 'https://armstrong-gym.vercel.app/og-image.jpg',
         logo: 'https://armstrong-gym.vercel.app/logo.jpg',
-        priceRange: '₹₹',
-        currenciesAccepted: 'INR',
-        paymentAccepted: 'Cash, UPI, Credit Card, Net Banking',
+        priceRange: '₨₨',
+        currenciesAccepted: 'PKR',
+        paymentAccepted: 'Cash, JazzCash, EasyPaisa, Bank Transfer',
         address: {
           '@type': 'PostalAddress',
-          streetAddress: '3rd Floor, Horizon Tower, Hill Road, Opposite McDonald\'s',
-          addressLocality: 'Bandra West',
-          addressRegion: 'Maharashtra',
-          postalCode: '400050',
-          addressCountry: 'IN',
+          streetAddress: 'Rimjhim Tower, Safoor, near KESC Society, Gulzar-e-Hijri, Scheme 33',
+          addressLocality: 'Karachi',
+          addressRegion: 'Sindh',
+          postalCode: '75270',
+          addressCountry: 'PK',
         },
         geo: {
           '@type': 'GeoCoordinates',
-          latitude: 19.054593,
-          longitude: 72.828551,
+          latitude: 24.9508,
+          longitude: 67.1147,
         },
-        hasMap: 'https://maps.app.goo.gl/edaxYmzF3znci2NX8',
+        hasMap: 'https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9',
         openingHoursSpecification: [
           {
             '@type': 'OpeningHoursSpecification',
@@ -101,7 +101,9 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
           { '@type': 'LocationFeatureSpecification', name: 'Personal Training', value: true },
         ],
         sameAs: [
-          'https://maps.app.goo.gl/edaxYmzF3znci2NX8',
+          'https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9',
+          'https://www.instagram.com/p/CWTOqdbIXqD/',
+          'https://www.facebook.com/p/ArmStrong-gym-100064082887275/',
         ],
       },
       // 2. FAQ — common membership questions for Google rich results
@@ -114,7 +116,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
             name: 'What are the membership plans at Armstrong Gym?',
             acceptedAnswer: {
               '@type': 'Answer',
-              text: 'Armstrong Gym offers Monthly (₹2,500), Quarterly (₹6,000), Half-Yearly (₹10,000), Yearly (₹18,000), Student Pass (₹1,800/month) and VIP Personal Coaching (₹12,000/month) plans. No admission or joining fees.',
+              text: 'Armstrong Gym offers Monthly (Rs. 2,500), Quarterly (Rs. 6,000), Half-Yearly (Rs. 10,000), Yearly (Rs. 18,000), Student Pass (Rs. 1,800/month) and VIP Personal Coaching (Rs. 12,000/month) plans. No admission or joining fees.',
             },
           },
           {
@@ -122,7 +124,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
             name: 'Where is Armstrong Gym located?',
             acceptedAnswer: {
               '@type': 'Answer',
-              text: '3rd Floor, Horizon Tower, Hill Road, Opposite McDonald\'s, Bandra West, Mumbai — Maharashtra 400050. Easy access from Bandra station.',
+              text: 'Armstrong Gym is located at Rimjhim Tower, Safoor, near KESC Society, Gulzar-e-Hijri, Scheme 33, Karachi 75270. Google Maps: https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9',
             },
           },
           {
@@ -258,53 +260,57 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
 
   const openWhatsAppCoach = (coachName: string) => {
     const text = encodeURIComponent(`Hi! I want to book a 1-on-1 personal coaching session with ${coachName} at Armstrong Gym.`);
-    window.open(`https://wa.me/919876543210?text=${text}`, '_blank');
+    window.open(`https://wa.me/923322464479?text=${text}`, '_blank');
   };
 
+  // NOTE: These packages are displayed statically. To make them fully
+  // admin-editable, add a "plans" JSON field to the settings table and
+  // fetch them via /api/settings. For now the admin sets plan costs
+  // per-member in the Members module.
   const plans = [
     {
       name: 'Monthly Starter',
-      price: '₹2,500',
+      price: 'Rs. 2,500',
       period: '/ month',
       badge: 'FLEXIBLE',
       badgeColor: 'bg-white/10 text-white border-white/20',
-      description: 'Perfect for short-term visitors & beginner lifters.',
+      description: 'Perfect for beginners & short-term members.',
       features: [
         'Full Gym & Cardio Floor Access',
-        'Steam Bath & Locker Access',
+        'Locker Room Access',
         'Standard Workout Chart',
-        'Free High-Speed Wi-Fi',
-        'In-App Digital Pass',
+        'In-App Digital Pass & QR Entry',
+        'WhatsApp Renewal Reminders',
       ],
       popular: false,
     },
     {
       name: 'Quarterly Beast',
-      price: '₹6,000',
+      price: 'Rs. 6,000',
       period: '/ 3 months',
       badge: 'MOST POPULAR',
       badgeColor: 'bg-[#E51924] text-white border-red-500/50 shadow-lg shadow-red-500/20',
-      description: 'Save 20% on a 90-day transformation commitment.',
+      description: 'Save 20% — ideal 90-day transformation plan.',
       features: [
         'Everything in Monthly Starter',
         '1-on-1 Trainer Assessment Session',
         'Body Composition & Fat Check',
-        '2x Free Steam Bath Vouchers',
         'Custom Nutrition Outline',
+        'Priority WhatsApp Support',
       ],
       popular: true,
     },
     {
       name: 'Half-Yearly Elite',
-      price: '₹10,000',
+      price: 'Rs. 10,000',
       period: '/ 6 months',
       badge: 'SAVE 35%',
       badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-      description: 'Serious gains for dedicated fitness enthusiasts.',
+      description: 'Serious results for dedicated fitness enthusiasts.',
       features: [
         'Everything in Quarterly Beast',
-        'Personalized Macro Diet Plan',
-        'Customized Heavy Strength Matrix',
+        'Personalised Macro Diet Plan',
+        'Customised Strength Programme',
         '2x Free Guest Passes / Month',
         'Free Supplement Consultation',
       ],
@@ -312,30 +318,30 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
     },
     {
       name: 'Yearly Champion',
-      price: '₹18,000',
+      price: 'Rs. 18,000',
       period: '/ year',
       badge: 'BEST VALUE',
       badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-      description: 'Ultimate lifestyle evolution & maximum savings.',
+      description: 'Ultimate savings & year-round unlimited access.',
       features: [
         'Unlimited VIP Access Year-Round',
         '4x Dedicated Personal Trainer Sessions',
         'Free Armstrong Gym Shaker & T-Shirt',
-        'Priority Permanent Locker & Sauna',
+        'Priority Locker Allocation',
         'Unlimited Guest Visits (1 / Mo)',
       ],
       popular: false,
     },
     {
       name: 'Student Fitness Pass',
-      price: '₹1,800',
+      price: 'Rs. 1,800',
       period: '/ month',
       badge: 'STUDENT DISCOUNT',
       badgeColor: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
       description: 'Discounted plan for students with valid Student ID.',
       features: [
         'Full Gym & Free Weights Access',
-        'Off-Peak Hours (11 AM - 5 PM)',
+        'Off-Peak Hours (11 AM – 5 PM)',
         'Locker Room Access',
         'Group Functional Training',
       ],
@@ -343,7 +349,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
     },
     {
       name: 'VIP Personal Coaching',
-      price: '₹12,000',
+      price: 'Rs. 12,000',
       period: '/ month',
       badge: 'GUARANTEED RESULTS',
       badgeColor: 'bg-[#E51924] text-white border-red-500/40',
@@ -433,60 +439,15 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
     };
   });
 
-  const transformations = [
-    {
-      id: 1,
-      clientName: 'Tariq Mahmood',
-      age: 28,
-      category: 'fatloss',
-      duration: '12 Weeks (90 Days)',
-      statPrimary: '-18 kg Fat Loss',
-      statSecondary: '28% to 14% Body Fat',
-      beforeImg: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=600&q=80',
-      afterImg: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=600&q=80',
-      trainer: 'Quadir',
-      quote: 'Joining Armstrong Gym was the best decision of my life. Coach Quadir pushed me beyond my excuses, and in 3 months I dropped 18 kg of stubborn fat while keeping my muscle!',
-    },
-    {
-      id: 2,
-      clientName: 'Zainab Fatima',
-      age: 31,
-      category: 'fatloss',
-      duration: '16 Weeks',
-      statPrimary: '-14 kg Weight Loss',
-      statSecondary: 'Toned Core & Fitness',
-      beforeImg: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=600&q=80',
-      afterImg: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=600&q=80',
-      trainer: 'Hamza',
-      quote: 'I wanted to lose weight sustainably without starving. Coach Hamza created a nutrition plan and workout routine that gave me total confidence again.',
-    },
-    {
-      id: 3,
-      clientName: 'Bilal Ahmed',
-      age: 25,
-      category: 'muscle',
-      duration: '6 Months',
-      statPrimary: '+9 kg Lean Muscle',
-      statSecondary: '220 kg Deadlift PR',
-      beforeImg: 'https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?auto=format&fit=crop&w=600&q=80',
-      afterImg: 'https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?auto=format&fit=crop&w=600&q=80',
-      trainer: 'Yasir',
-      quote: 'I used to be super skinny and struggled to gain weight. Coach Yasir fixed my form, put me on a surplus powerbuilding diet, and transformed my physique into a tank.',
-    },
-    {
-      id: 4,
-      clientName: 'Ayesha Siddiqui',
-      age: 29,
-      category: 'fatloss',
-      duration: '14 Weeks',
-      statPrimary: '-12 kg Body Recomp',
-      statSecondary: 'Visceral Fat Dropped 5%',
-      beforeImg: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=600&q=80',
-      afterImg: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=600&q=80',
-      trainer: 'Gul',
-      quote: 'Coach Gul’s high-octane HIIT and strength circuits were amazing! The energy at Armstrong Gym is unmatched.',
-    },
-  ];
+  // Transformations shown here come from real client data.
+  // Add entries via the admin portal (Trainers → client results).
+  const transformations: Array<{
+    id: number; clientName: string; age: number;
+    category: 'fatloss' | 'muscle'; duration: string;
+    statPrimary: string; statSecondary: string;
+    beforeImg: string; afterImg: string;
+    trainer: string; quote: string;
+  }> = [];
 
   const filteredTransformations = transformations.filter(
     (t) => activeTransformationTab === 'all' || t.category === activeTransformationTab
@@ -507,7 +468,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       </div>
 
       {/* Top Floating Navigation Bar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-white/10 px-6 py-3.5">
+      <nav className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-white/10 px-3 sm:px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <a href="#" className="hover:opacity-90 transition-opacity">
             <Logo size="md" showText={true} />
@@ -536,6 +497,30 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
           </div>
 
           <div className="flex items-center gap-3">
+            <a
+              href="https://www.instagram.com/p/CWTOqdbIXqD/"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Armstrong Gym Instagram"
+              className="p-2 rounded-full glass-card hover:bg-white/10 border border-white/10 text-white/60 hover:text-[#E51924] transition-colors"
+            >
+              {/* Instagram icon */}
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+              </svg>
+            </a>
+            <a
+              href="https://www.facebook.com/p/ArmStrong-gym-100064082887275/"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Armstrong Gym Facebook"
+              className="p-2 rounded-full glass-card hover:bg-white/10 border border-white/10 text-white/60 hover:text-[#E51924] transition-colors"
+            >
+              {/* Facebook icon */}
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+            </a>
             <button
               onClick={() => setShowBillModal(true)}
               className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 text-xs font-black uppercase tracking-wider transition-all"
@@ -548,7 +533,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-36 pb-20 px-6 overflow-hidden">
+      <section className="relative pt-24 sm:pt-36 pb-12 sm:pb-20 px-4 sm:px-6 overflow-hidden">
         {/* Subtle dark hero background picture overlay */}
         <div 
           className="absolute top-0 right-0 w-full lg:w-2/3 h-full bg-cover bg-center bg-no-repeat opacity-20 filter contrast-125 saturate-50 pointer-events-none -z-10 mix-blend-screen"
@@ -562,10 +547,10 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/30 text-white text-xs font-extrabold uppercase tracking-widest">
               <Flame className="w-4 h-4 text-[#E51924] animate-pulse" />
-              <span>PREMIUM HEAVY FIT FACILITY • BANDRA WEST</span>
+              <span>PREMIUM HEAVY LIFT FACILITY • KARACHI</span>
             </div>
 
-            <h1 className="text-5xl sm:text-7xl font-black tracking-wide text-white leading-none uppercase">
+            <h1 className="text-3xl xs:text-5xl sm:text-7xl font-black tracking-wide text-white leading-none uppercase">
               BUILD UNSTOPPABLE{' '}
               <span className="text-[#E51924]">
                 STRENGTH.
@@ -573,7 +558,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
             </h1>
 
             <p className="text-sm sm:text-base text-white/70 font-medium leading-relaxed max-w-xl">
-              Welcome to Armstrong Gym & Fitness — Mumbai’s hardcore fitness sanctuary built for heavy lifters, fat loss seekers, and athletic transformations. Equipped with Rogue Olympic barbells, competition platforms, steam sauna, and certified master coaches.
+              Welcome to Armstrong Gym & Fitness — Karachi’s hardcore fitness sanctuary built for heavy lifters, fat loss seekers, and athletic transformations. Equipped with heavy free weights, competition platforms, and certified master coaches.
             </p>
 
             <div className="flex flex-wrap items-center gap-4 pt-2">
@@ -586,7 +571,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
               </a>
 
               <a
-                href="https://maps.app.goo.gl/edaxYmzF3znci2NX8"
+                href="https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9"
                 target="_blank"
                 rel="noreferrer"
                 className="px-8 py-4 rounded-full glass-card hover:bg-white/10 text-white border border-white/20 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2"
@@ -597,21 +582,21 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
             </div>
 
             {/* Live Stats Bar */}
-            <div className="grid grid-cols-4 gap-2 pt-8 border-t border-white/10">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-white/10">
               <div>
-                <p className="stat-val text-3xl sm:text-4xl text-white">500+</p>
+                <p className="stat-val text-2xl sm:text-4xl text-white">500+</p>
                 <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-white/40">Active Members</p>
               </div>
               <div>
-                <p className="stat-val text-3xl sm:text-4xl text-[#E51924]">15+</p>
+                <p className="stat-val text-2xl sm:text-4xl text-[#E51924]">15+</p>
                 <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-white/40">Coaches</p>
               </div>
               <div>
-                <p className="stat-val text-3xl sm:text-4xl text-white">10K</p>
+                <p className="stat-val text-2xl sm:text-4xl text-white">10K</p>
                 <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-white/40">Sq Ft Space</p>
               </div>
               <div>
-                <p className="stat-val text-3xl sm:text-4xl text-[#E51924]">98%</p>
+                <p className="stat-val text-2xl sm:text-4xl text-[#E51924]">98%</p>
                 <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-white/40">Success Rate</p>
               </div>
             </div>
@@ -629,14 +614,14 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
               
               <div className="absolute bottom-6 left-6 right-6 p-4 rounded-2xl glass-card border border-white/15 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-black uppercase tracking-wider text-white">Armstrong Gym & Fitness HQ</p>
+                  <p className="text-sm font-black uppercase tracking-wider text-white">Armstrong Gym & Fitness — Karachi</p>
                   <p className="text-xs text-white/60 flex items-center gap-1.5 mt-0.5 font-mono">
                     <MapPin className="w-3.5 h-3.5 text-[#E51924]" />
-                    Horizon Tower, Hill Road, Bandra West
+                    Rimjhim Tower, Safoor, Scheme 33, Karachi
                   </p>
                 </div>
                 <a
-                  href="https://maps.app.goo.gl/edaxYmzF3znci2NX8"
+                  href="https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9"
                   target="_blank"
                   rel="noreferrer"
                   className="px-3.5 py-1.5 rounded-full bg-[#E51924] text-white text-[10px] font-extrabold uppercase tracking-widest border border-red-500/40 hover:bg-red-600 transition-colors flex items-center gap-1"
@@ -651,13 +636,13 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       </section>
 
       {/* Facilities & Features */}
-      <section id="about" className="py-20 px-6 border-y border-white/10 relative">
+      <section id="about" className="py-12 sm:py-20 px-4 sm:px-6 border-y border-white/10 relative">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-3">
             <p className="text-[10px] font-black text-[#E51924] uppercase tracking-[0.3em]">
               WORLD-CLASS AMENITIES
             </p>
-            <h2 className="text-4xl font-black uppercase tracking-wide text-white">
+            <h2 className="text-2xl sm:text-4xl font-black uppercase tracking-wide text-white">
               Built for Heavy Lifters & Goal Seekers
             </h2>
           </div>
@@ -697,19 +682,19 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       </section>
 
       {/* Membership Packages Section */}
-      <section id="packages" className="py-20 px-6">
+      <section id="packages" className="py-12 sm:py-20 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-3">
             <p className="text-[10px] font-black text-[#E51924] uppercase tracking-[0.3em]">
               TRANSPARENT MEMBERSHIP PACKAGES
             </p>
-            <h2 className="text-4xl font-black uppercase tracking-wide text-white">Choose Your Training Pass</h2>
+            <h2 className="text-2xl sm:text-4xl font-black uppercase tracking-wide text-white">Choose Your Training Pass</h2>
             <p className="text-xs text-white/50 uppercase tracking-wider font-bold">
               No admission fees. Flexible monthly, quarterly, yearly & VIP coaching packages.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {plans.map((plan, i) => (
               <div
                 key={i}
@@ -728,7 +713,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
 
                   <h3 className="text-xl font-black uppercase tracking-wider text-white">{plan.name}</h3>
                   <div className="flex items-baseline gap-1.5 my-3">
-                    <span className="stat-val text-4xl text-[#E51924]">{plan.price}</span>
+                    <span className="stat-val text-2xl sm:text-4xl text-[#E51924]">{plan.price}</span>
                     <span className="text-xs text-white/40 font-mono">{plan.period}</span>
                   </div>
                   <p className="text-xs text-white/60 font-medium leading-relaxed mb-6">{plan.description}</p>
@@ -762,13 +747,13 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       </section>
 
       {/* Trainers Showcase Section */}
-      <section id="trainers" className="py-20 px-6 border-t border-white/10 bg-white/[0.01]">
+      <section id="trainers" className="py-12 sm:py-20 px-4 sm:px-6 border-t border-white/10 bg-white/[0.01]">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-3">
             <p className="text-[10px] font-black text-[#E51924] uppercase tracking-[0.3em]">
               MEET THE CHAMPIONS
             </p>
-            <h2 className="text-4xl font-black uppercase tracking-wide text-white">Elite Gym Trainers</h2>
+            <h2 className="text-2xl sm:text-4xl font-black uppercase tracking-wide text-white">Elite Gym Trainers</h2>
             <p className="text-xs text-white/50 uppercase tracking-wider font-bold">
               Certified master coaches ready to transform your strength, physique, and athletic output.
             </p>
@@ -827,13 +812,13 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       </section>
 
       {/* Client Progress / Transformations (Before & After) Section */}
-      <section id="transformations" className="py-20 px-6 border-t border-white/10 relative">
+      <section id="transformations" className="py-12 sm:py-20 px-4 sm:px-6 border-t border-white/10 relative">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-3">
             <p className="text-[10px] font-black text-[#E51924] uppercase tracking-[0.3em]">
               REAL RESULTS • NO EXCUSES
             </p>
-            <h2 className="text-4xl font-black uppercase tracking-wide text-white">Client Transformations</h2>
+            <h2 className="text-2xl sm:text-4xl font-black uppercase tracking-wide text-white">Client Transformations</h2>
             <p className="text-xs text-white/50 uppercase tracking-wider font-bold">
               Real Armstrong Gym members who crushed their weight loss & muscle gain goals.
             </p>
@@ -874,6 +859,23 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {filteredTransformations.length === 0 && (
+              <div className="col-span-full glass-card border border-white/10 rounded-3xl p-12 text-center space-y-4">
+                <div className="w-16 h-16 rounded-2xl bg-[#E51924]/10 text-[#E51924] flex items-center justify-center mx-auto">
+                  <Sparkles className="w-8 h-8" />
+                </div>
+                <h3 className="text-base font-black text-white uppercase tracking-wider">
+                  Transformations Coming Soon
+                </h3>
+                <p className="text-xs text-white/50 max-w-md mx-auto">
+                  Real client before &amp; after results will be posted here by the gym admin. Check back soon!
+                </p>
+                <a href="#trial"
+                  className="inline-block mt-2 px-6 py-2.5 rounded-full bg-[#E51924] hover:bg-red-600 text-white text-xs font-black uppercase tracking-widest transition-all">
+                  Start Your Transformation
+                </a>
+              </div>
+            )}
             {filteredTransformations.map((t) => (
               <div
                 key={t.id}
@@ -943,15 +945,15 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       </section>
 
       {/* Location / Google Maps Navigation Section */}
-      <section id="location" className="py-20 px-6 border-t border-white/10">
+      <section id="location" className="py-12 sm:py-20 px-4 sm:px-6 border-t border-white/10">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-3">
             <p className="text-[10px] font-black text-[#E51924] uppercase tracking-[0.3em]">
               FIND OUR GYM
             </p>
-            <h2 className="text-4xl font-black uppercase tracking-wide text-white">Location & Map Navigation</h2>
+            <h2 className="text-2xl sm:text-4xl font-black uppercase tracking-wide text-white">Location & Map Navigation</h2>
             <p className="text-xs text-white/50 uppercase tracking-wider font-bold">
-              Visit our state-of-the-art facility in Bandra West, Mumbai. Easy access & valet parking.
+              Visit our state-of-the-art facility in Gulzar-e-Hijri, Karachi. Easy access from Scheme 33.
             </p>
           </div>
 
@@ -965,7 +967,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
                   </div>
                   <div>
                     <h3 className="text-lg font-black uppercase tracking-wider text-white">Armstrong Gym HQ</h3>
-                    <p className="text-xs text-white/50 font-mono">Bandra West Branch</p>
+                    <p className="text-xs text-white/50 font-mono">Gulzar-e-Hijri Branch</p>
                   </div>
                 </div>
 
@@ -975,7 +977,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
                     <div>
                       <p className="font-bold text-white uppercase">Address</p>
                       <p className="text-white/60 leading-relaxed mt-0.5">
-                        3rd Floor, Horizon Tower, Hill Road, Opposite McDonald's, Bandra West, Mumbai, MH 400050
+                        Rimjhim Tower, Safoor, near KESC Society, Gulzar-e-Hijri, Scheme 33, Karachi 75270
                       </p>
                     </div>
                   </div>
@@ -984,7 +986,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
                     <Phone className="w-4 h-4 text-[#E51924] shrink-0 mt-0.5" />
                     <div>
                       <p className="font-bold text-white uppercase">Front Desk Phone</p>
-                      <p className="text-white/60 font-mono mt-0.5">+91 98765 43210 / +91 91234 56789</p>
+                      <p className="text-white/60 font-mono mt-0.5">0332 2464479</p>
                     </div>
                   </div>
 
@@ -1001,7 +1003,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
 
               <div className="pt-6 border-t border-white/10 space-y-3">
                 <a
-                  href="https://maps.app.goo.gl/edaxYmzF3znci2NX8"
+                  href="https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9"
                   target="_blank"
                   rel="noreferrer"
                   className="w-full py-4 rounded-full bg-[#E51924] hover:bg-red-600 text-white font-black text-xs uppercase tracking-widest text-center shadow-xl shadow-red-500/20 transition-all flex items-center justify-center gap-2 group"
@@ -1012,7 +1014,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
                 </a>
 
                 <p className="text-[10px] text-center text-white/40 font-mono">
-                  Direct Link: https://maps.app.goo.gl/edaxYmzF3znci2NX8
+                  Direct Link: https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9
                 </p>
               </div>
             </div>
@@ -1021,8 +1023,8 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
             <div className="lg:col-span-2 glass-card border border-white/15 rounded-3xl p-2.5 overflow-hidden min-h-[400px] flex flex-col relative group">
               <iframe
                 title="Armstrong Gym Location Map"
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3771.218520038814!2d72.828551!3d19.054593!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7c93e43031023%3A0xb3cf51a027fa4b1b!2sHill%20Rd%2C%20Bandra%20West%2C%20Mumbai%2C%20Maharashtra%20400050!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"
-                className="w-full h-full min-h-[380px] rounded-2xl border-0 filter contrast-125 brightness-90"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3619.876!2d67.1147!3d24.9508!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2sArmstrong%20Gym%20Karachi!5e0!3m2!1sen!2spk!4v1700000000000!5m2!1sen!2spk"
+                className="w-full h-full min-h-[250px] sm:min-h-[380px] rounded-2xl border-0 filter contrast-125 brightness-90"
                 allowFullScreen={true}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
@@ -1036,12 +1038,12 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
                 <div>
                   <p className="text-xs font-black uppercase text-white">Armstrong Gym & Fitness</p>
                   <a
-                    href="https://maps.app.goo.gl/edaxYmzF3znci2NX8"
+                    href="https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9"
                     target="_blank"
                     rel="noreferrer"
                     className="text-[10px] text-[#E51924] font-bold hover:underline flex items-center gap-1 mt-0.5"
                   >
-                    <span>maps.app.goo.gl/edaxYmzF3znci2NX8</span>
+                    <span>maps.app.goo.gl/1gbbwvmXgQaLRVNM9</span>
                     <ExternalLink className="w-2.5 h-2.5" />
                   </a>
                 </div>
@@ -1052,8 +1054,8 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       </section>
 
       {/* Free Trial Form Section */}
-      <section id="trial" className="py-20 px-6 relative">
-        <div className="max-w-3xl mx-auto glass-card border border-white/20 rounded-3xl p-8 sm:p-12 shadow-2xl relative overflow-hidden">
+      <section id="trial" className="py-12 sm:py-20 px-4 sm:px-6 relative">
+        <div className="max-w-3xl mx-auto glass-card border border-white/20 rounded-3xl p-5 sm:p-12 shadow-2xl relative overflow-hidden">
           {/* Background image overlay inside card */}
           <div 
             className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15 filter contrast-125 saturate-50 pointer-events-none -z-10"
@@ -1067,7 +1069,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
             <span className="text-[10px] font-black text-[#E51924] tracking-[0.3em] uppercase">
               1-DAY VIP ACCESS
             </span>
-            <h2 className="text-4xl font-black uppercase tracking-wide text-white">Book Your Free Pass</h2>
+            <h2 className="text-2xl sm:text-4xl font-black uppercase tracking-wide text-white">Book Your Free Pass</h2>
             <p className="text-xs text-white/50 uppercase tracking-wider font-bold">
               Test out the Rogue equipment, cardio floor & steam bath before committing.
             </p>
@@ -1096,7 +1098,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
                 <input
                   type="tel"
                   required
-                  placeholder="+92 300 1234567"
+                  placeholder="0332 2464479"
                   value={trialPhone}
                   onChange={(e) => setTrialPhone(e.target.value)}
                   className="w-full px-4 py-3.5 text-xs bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:border-[#E51924] uppercase font-bold tracking-wider"
@@ -1148,14 +1150,34 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 py-12 px-6 text-center text-xs text-white/40 space-y-6">
+      <footer className="border-t border-white/10 py-8 sm:py-12 px-4 sm:px-6 text-center text-xs text-white/40 space-y-6">
         <div className="flex justify-center items-center">
           <Logo size="md" showText={true} />
         </div>
         <p className="max-w-md mx-auto text-white/50 leading-relaxed font-medium">
-          Armstrong Gym & Fitness Club • 3rd Floor, Horizon Tower, Hill Road, Bandra West, Mumbai 400050.
+          Armstrong Gym &amp; Fitness Club • Rimjhim Tower, Safoor, Gulzar-e-Hijri, Scheme 33, Karachi 75270.
         </p>
-        <p>© 2026 Armstrong Gym & Fitness Club. All Rights Reserved.</p>
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          <a href="tel:03322464479" className="text-white/60 hover:text-[#E51924] transition-colors font-mono">
+            0332 2464479
+          </a>
+          <span className="text-white/20" aria-hidden="true">•</span>
+          <a href="https://www.instagram.com/p/CWTOqdbIXqD/" target="_blank" rel="noreferrer"
+            className="text-white/60 hover:text-[#E51924] transition-colors font-bold uppercase tracking-widest text-[10px]">
+            Instagram
+          </a>
+          <span className="text-white/20" aria-hidden="true">•</span>
+          <a href="https://www.facebook.com/p/ArmStrong-gym-100064082887275/" target="_blank" rel="noreferrer"
+            className="text-white/60 hover:text-[#E51924] transition-colors font-bold uppercase tracking-widest text-[10px]">
+            Facebook
+          </a>
+          <span className="text-white/20" aria-hidden="true">•</span>
+          <a href="https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9" target="_blank" rel="noreferrer"
+            className="text-white/60 hover:text-[#E51924] transition-colors font-bold uppercase tracking-widest text-[10px]">
+            Google Maps
+          </a>
+        </div>
+        <p>© {new Date().getFullYear()} Armstrong Gym &amp; Fitness Club. All Rights Reserved.</p>
       </footer>
 
       {/* Client Submit Payment Bill Modal */}
@@ -1200,7 +1222,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-white/80 mb-1">
-                    Amount Paid (₹) *
+                    Amount Paid (Rs.) *
                   </label>
                   <input
                     type="number"

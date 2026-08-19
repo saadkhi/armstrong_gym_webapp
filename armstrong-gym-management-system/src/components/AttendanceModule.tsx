@@ -124,7 +124,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
               </p>
               {expiredWarning.remainingBalance > 0 && (
                 <p className="text-xs text-amber-400 font-bold">
-                  Outstanding balance: ₹{expiredWarning.remainingBalance.toLocaleString('en-IN')}
+                  Outstanding balance: Rs. {expiredWarning.remainingBalance.toLocaleString('en-PK')}
                 </p>
               )}
             </div>
@@ -168,7 +168,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
       </div>
 
       {/* Check-In Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
         {/* QR Scanner Card */}
         <div className="glass-card border border-white/10 rounded-2xl p-5 space-y-4 shadow-xl">
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
@@ -259,8 +259,8 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left text-xs mobile-card-table">
             <thead className="bg-white/5 text-white/40 font-semibold border-b border-white/10 uppercase text-[10px] tracking-wider">
               <tr>
                 <th className="py-3 px-4">Check-In ID</th>
@@ -274,13 +274,13 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
               {filteredAttendance.length > 0 ? (
                 filteredAttendance.map((a) => (
                   <tr key={a.id} className="hover:bg-white/5 transition-colors">
-                    <td className="py-3 px-4 font-mono text-white/40">{a.id}</td>
+                    <td className="py-3 px-3 sm:px-4 font-mono text-white/40" data-label="ID">{a.id}</td>
                     <td className="py-3 px-4">
                       <p className="font-bold text-white">{a.memberName}</p>
                       <p className="text-[10px] font-mono text-white/40">{a.memberId}</p>
                     </td>
-                    <td className="py-3 px-4 font-mono text-white/70">{a.date}</td>
-                    <td className="py-3 px-4 font-mono font-bold text-[#E51924]">{a.time}</td>
+                    <td className="py-3 px-3 sm:px-4 font-mono text-white/70" data-label="Date">{a.date}</td>
+                    <td className="py-3 px-3 sm:px-4 font-mono font-bold text-[#E51924]" data-label="Time">{a.time}</td>
                     <td className="py-3 px-4">
                       <span className="px-2 py-0.5 rounded bg-white/5 text-white/80 border border-white/10 text-[10px] font-mono font-semibold">
                         {a.checkInMethod}
