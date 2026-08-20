@@ -62,11 +62,26 @@ async function execute(sql: string, params: any[] = []): Promise<void> {
 }
 
 export interface DbSettings {
-  gymName: string;
-  twilioAccountSid: string;
-  twilioAuthToken: string;
+  gymName:            string;
+  twilioAccountSid:   string;
+  twilioAuthToken:    string;
   twilioWhatsappFrom: string;
-  cronSecret: string;
+  cronSecret:         string;
+  // ── Website content (editable from Settings panel) ──────────────────────
+  gymPhone:           string;
+  gymAddress:         string;
+  gymMapsUrl:         string;
+  gymInstagramUrl:    string;
+  gymFacebookUrl:     string;
+  gymWhatsappBooking: string;  // digits only, e.g. "923322464479"
+  gymTimingsWeekday:  string;
+  gymTimingsSunday:   string;
+  statMembers:        string;
+  statCoaches:        string;
+  statFloorSize:      string;
+  statSuccessRate:    string;
+  heroTagline:        string;
+  plansJson:          string;  // JSON-stringified PlanItem[]
 }
 
 /** Resolve the required CRON_SECRET from the environment. Throws on startup if missing. */
@@ -603,9 +618,26 @@ export async function insertReminderLog(l: ReminderLog): Promise<void> {
 // ─── Settings queries ──────────────────────────────────────────────────────────
 export async function getSettings(): Promise<DbSettings> {
   const rows = await query<DbSettings>(
-    `SELECT gym_name AS "gymName", twilio_account_sid AS "twilioAccountSid",
-      twilio_auth_token AS "twilioAuthToken", twilio_whatsapp_from AS "twilioWhatsappFrom",
-      cron_secret AS "cronSecret"
+    `SELECT
+       gym_name              AS "gymName",
+       twilio_account_sid    AS "twilioAccountSid",
+       twilio_auth_token     AS "twilioAuthToken",
+       twilio_whatsapp_from  AS "twilioWhatsappFrom",
+       cron_secret           AS "cronSecret",
+       COALESCE(gym_phone,            '0332 2464479')                                            AS "gymPhone",
+       COALESCE(gym_address,          'Rimjhim Tower, Safoor, Gulzar-e-Hijri, Scheme 33, Karachi 75270') AS "gymAddress",
+       COALESCE(gym_maps_url,         'https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9')              AS "gymMapsUrl",
+       COALESCE(gym_instagram_url,    'https://www.instagram.com/p/CWTOqdbIXqD/')               AS "gymInstagramUrl",
+       COALESCE(gym_facebook_url,     'https://www.facebook.com/p/ArmStrong-gym-100064082887275/') AS "gymFacebookUrl",
+       COALESCE(gym_whatsapp_booking, '923322464479')                                            AS "gymWhatsappBooking",
+       COALESCE(gym_timings_weekday,  'Mon – Sat: 6:00 AM – 11:00 PM')                          AS "gymTimingsWeekday",
+       COALESCE(gym_timings_sunday,   'Sunday: 8:00 AM – 8:00 PM')                              AS "gymTimingsSunday",
+       COALESCE(stat_members,         '500+')                                                    AS "statMembers",
+       COALESCE(stat_coaches,         '10+')                                                     AS "statCoaches",
+       COALESCE(stat_floor_size,      '5,000')                                                   AS "statFloorSize",
+       COALESCE(stat_success_rate,    '98%')                                                     AS "statSuccessRate",
+       COALESCE(hero_tagline,         'Karachi''s hardcore fitness sanctuary.')                  AS "heroTagline",
+       COALESCE(plans_json,           '[]')                                                      AS "plansJson"
      FROM settings WHERE id = 1`
   );
   return rows[0] ?? {
@@ -613,14 +645,42 @@ export async function getSettings(): Promise<DbSettings> {
     twilioAccountSid: '', twilioAuthToken: '',
     twilioWhatsappFrom: 'whatsapp:+14155238886',
     cronSecret: process.env.CRON_SECRET || '',
+    gymPhone: '0332 2464479',
+    gymAddress: 'Rimjhim Tower, Safoor, Gulzar-e-Hijri, Scheme 33, Karachi 75270',
+    gymMapsUrl: 'https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9',
+    gymInstagramUrl: 'https://www.instagram.com/p/CWTOqdbIXqD/',
+    gymFacebookUrl: 'https://www.facebook.com/p/ArmStrong-gym-100064082887275/',
+    gymWhatsappBooking: '923322464479',
+    gymTimingsWeekday: 'Mon – Sat: 6:00 AM – 11:00 PM',
+    gymTimingsSunday: 'Sunday: 8:00 AM – 8:00 PM',
+    statMembers: '500+', statCoaches: '10+',
+    statFloorSize: '5,000', statSuccessRate: '98%',
+    heroTagline: "Karachi's hardcore fitness sanctuary.",
+    plansJson: '[]',
   };
 }
 
 export async function updateSettings(s: Partial<DbSettings>): Promise<DbSettings> {
-  const map: Record<string,string> = {
-    gymName: 'gym_name', twilioAccountSid: 'twilio_account_sid',
-    twilioAuthToken: 'twilio_auth_token', twilioWhatsappFrom: 'twilio_whatsapp_from',
-    cronSecret: 'cron_secret',
+  const map: Record<string, string> = {
+    gymName:            'gym_name',
+    twilioAccountSid:   'twilio_account_sid',
+    twilioAuthToken:    'twilio_auth_token',
+    twilioWhatsappFrom: 'twilio_whatsapp_from',
+    cronSecret:         'cron_secret',
+    gymPhone:           'gym_phone',
+    gymAddress:         'gym_address',
+    gymMapsUrl:         'gym_maps_url',
+    gymInstagramUrl:    'gym_instagram_url',
+    gymFacebookUrl:     'gym_facebook_url',
+    gymWhatsappBooking: 'gym_whatsapp_booking',
+    gymTimingsWeekday:  'gym_timings_weekday',
+    gymTimingsSunday:   'gym_timings_sunday',
+    statMembers:        'stat_members',
+    statCoaches:        'stat_coaches',
+    statFloorSize:      'stat_floor_size',
+    statSuccessRate:    'stat_success_rate',
+    heroTagline:        'hero_tagline',
+    plansJson:          'plans_json',
   };
   const fields: string[] = [];
   const vals: any[] = [];
@@ -1216,8 +1276,9 @@ export async function runSchemaMigrations(): Promise<void> {
   const { migration001 }     = await import('./migrations/001_add_fk_constraints');
   const { migration002 }     = await import('./migrations/002_date_columns_to_date_type');
   const { migration003 }     = await import('./migrations/003_audit_log_table');
+  const { migration004 }     = await import('./migrations/004_settings_website_content');
 
-  await runMigrations([migration001, migration002, migration003]);
+  await runMigrations([migration001, migration002, migration003, migration004]);
 }
 
 // ─── Audit log helpers ─────────────────────────────────────────────────────────

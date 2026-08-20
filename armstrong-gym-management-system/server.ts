@@ -761,6 +761,23 @@ async function startServer() {
   });
 
   // ─── Settings ──────────────────────────────────────────────────────────────
+  // Public endpoint — no auth — only website-safe fields
+  app.get('/api/settings/public', async (_req, res) => {
+    try {
+      const s = await getSettings();
+      const pub = {
+        gymName: s.gymName, gymPhone: s.gymPhone, gymAddress: s.gymAddress,
+        gymMapsUrl: s.gymMapsUrl, gymInstagramUrl: s.gymInstagramUrl,
+        gymFacebookUrl: s.gymFacebookUrl, gymWhatsappBooking: s.gymWhatsappBooking,
+        gymTimingsWeekday: s.gymTimingsWeekday, gymTimingsSunday: s.gymTimingsSunday,
+        statMembers: s.statMembers, statCoaches: s.statCoaches,
+        statFloorSize: s.statFloorSize, statSuccessRate: s.statSuccessRate,
+        heroTagline: s.heroTagline, plansJson: s.plansJson,
+      };
+      return res.json(pub);
+    } catch (err) { return res.status(500).json({ error: 'Internal server error' }); }
+  });
+
   app.get('/api/settings', requireAuth, async (_req, res) => {
     try {
       const s = await getSettings();

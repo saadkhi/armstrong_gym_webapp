@@ -24,12 +24,58 @@ import {
   Upload,
   Check,
   X,
+  Instagram,
+  Facebook,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Logo } from './Logo';
-import { submitMemberBill, fetchPublicTrainers } from '../api/client';
+import { submitMemberBill, fetchPublicTrainers, fetchPublicSettings } from '../api/client';
 import { Trainer } from '../types';
 import gymBg from '../../assets/gym-bg.jpeg';
+
+// ── Plan type (matches plansJson stored in settings) ─────────────────────────
+export interface PlanItem {
+  name:        string;
+  price:       string;
+  period:      string;
+  badge:       string;
+  badgeColor:  string;
+  description: string;
+  features:    string[];
+  popular:     boolean;
+}
+
+// Default plans shown when admin has not yet saved custom plans
+const DEFAULT_PLANS: PlanItem[] = [
+  {
+    name: 'Monthly',       price: 'Rs. 2,500',  period: '/ month',
+    badge: 'FLEXIBLE',     badgeColor: 'bg-white/10 text-white border-white/20',
+    description: 'Perfect for beginners & short-term members.',
+    features: ['Full Gym & Cardio Access', 'Locker Room', 'Standard Workout Chart', 'QR Digital Pass'],
+    popular: false,
+  },
+  {
+    name: 'Quarterly',     price: 'Rs. 6,000',  period: '/ 3 months',
+    badge: 'MOST POPULAR', badgeColor: 'bg-[#E51924] text-white border-red-500/50 shadow-lg shadow-red-500/20',
+    description: 'Save 20% — ideal 90-day transformation plan.',
+    features: ['Everything in Monthly', '1-on-1 Trainer Assessment', 'Body Composition Check', 'Custom Nutrition Outline'],
+    popular: true,
+  },
+  {
+    name: 'Half-Yearly',   price: 'Rs. 10,000', period: '/ 6 months',
+    badge: 'SAVE 35%',     badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+    description: 'Serious results for dedicated fitness enthusiasts.',
+    features: ['Everything in Quarterly', 'Personalised Macro Diet', 'Customised Strength Programme', '2x Guest Passes / Month'],
+    popular: false,
+  },
+  {
+    name: 'Yearly',        price: 'Rs. 18,000', period: '/ year',
+    badge: 'BEST VALUE',   badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+    description: 'Ultimate savings & year-round unlimited access.',
+    features: ['Unlimited VIP Access', '4x Trainer Sessions', 'Free Gym Merchandise', 'Priority Locker'],
+    popular: false,
+  },
+];
 
 interface PortfolioProps {
   onGoToAdmin: () => void;
@@ -43,6 +89,39 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
   const [activeTransformationTab, setActiveTransformationTab] = useState<'all' | 'fatloss' | 'muscle'>('all');
   const [activeTrainerModal, setActiveTrainerModal] = useState<any | null>(null);
   const [liveTrainers, setLiveTrainers] = useState<Trainer[]>([]);
+
+  // ── Dynamic site settings fetched from the admin portal ──────────────────
+  const [siteSettings, setSiteSettings] = useState<Record<string, string>>({
+    gymName:            'Armstrong Gym & Fitness Club',
+    gymPhone:           '{siteSettings.gymPhone}',
+    gymAddress:         'Rimjhim Tower, Safoor, Gulzar-e-Hijri, Scheme 33, Karachi 75270',
+    gymMapsUrl:         'https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9',
+    gymInstagramUrl:    'https://www.instagram.com/p/CWTOqdbIXqD/',
+    gymFacebookUrl:     'https://www.facebook.com/p/ArmStrong-gym-100064082887275/',
+    gymWhatsappBooking: '923322464479',
+    gymTimingsWeekday:  'Mon – Sat: 6:00 AM – 11:00 PM',
+    gymTimingsSunday:   'Sunday: 8:00 AM – 8:00 PM',
+    statMembers:        '500+',
+    statCoaches:        '10+',
+    statFloorSize:      '5,000',
+    statSuccessRate:    '98%',
+    heroTagline:        "Karachi's hardcore fitness sanctuary built for heavy lifters, fat loss seekers, and athletic transformations.",
+    plansJson:          '[]',
+  });
+
+  const [plans, setPlans] = useState<PlanItem[]>(DEFAULT_PLANS);
+
+  useEffect(() => {
+    fetchPublicSettings()
+      .then((data: Record<string, string>) => {
+        setSiteSettings(prev => ({ ...prev, ...data }));
+        try {
+          const parsed: PlanItem[] = JSON.parse(data.plansJson || '[]');
+          if (Array.isArray(parsed) && parsed.length > 0) setPlans(parsed);
+        } catch { /* keep defaults */ }
+      })
+      .catch(() => { /* keep defaults */ });
+  }, []);
 
   // ── Structured data (JSON-LD) for local SEO ──────────────────────────────
   useEffect(() => {
@@ -124,7 +203,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
             name: 'Where is Armstrong Gym located?',
             acceptedAnswer: {
               '@type': 'Answer',
-              text: 'Armstrong Gym is located at Rimjhim Tower, Safoor, near KESC Society, Gulzar-e-Hijri, Scheme 33, Karachi 75270. Google Maps: https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9',
+              text: 'Armstrong Gym is located at {siteSettings.gymAddress}. Google Maps: https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9',
             },
           },
           {
@@ -253,191 +332,39 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
       toast.error('Please fill in your name and phone number');
       return;
     }
+    const waNum = siteSettings.gymWhatsappBooking || '923322464479';
+    const msg = encodeURIComponent(`Hi! Free trial request from ${trialName} (${trialPhone}). Slot: ${trialSlot}, Goal: ${trialGoal}`);
+    window.open(`https://wa.me/${waNum}?text=${msg}`, '_blank');
     toast.success(`Free Trial Pass booked for ${trialName}! Details sent via WhatsApp.`);
     setTrialName('');
     setTrialPhone('');
   };
 
   const openWhatsAppCoach = (coachName: string) => {
+    const num  = siteSettings.gymWhatsappBooking || '923322464479';
     const text = encodeURIComponent(`Hi! I want to book a 1-on-1 personal coaching session with ${coachName} at Armstrong Gym.`);
-    window.open(`https://wa.me/923322464479?text=${text}`, '_blank');
+    window.open(`https://wa.me/${num}?text=${text}`, '_blank');
   };
 
-  // NOTE: These packages are displayed statically. To make them fully
-  // admin-editable, add a "plans" JSON field to the settings table and
-  // fetch them via /api/settings. For now the admin sets plan costs
-  // per-member in the Members module.
-  const plans = [
-    {
-      name: 'Monthly Starter',
-      price: 'Rs. 2,500',
-      period: '/ month',
-      badge: 'FLEXIBLE',
-      badgeColor: 'bg-white/10 text-white border-white/20',
-      description: 'Perfect for beginners & short-term members.',
-      features: [
-        'Full Gym & Cardio Floor Access',
-        'Locker Room Access',
-        'Standard Workout Chart',
-        'In-App Digital Pass & QR Entry',
-        'WhatsApp Renewal Reminders',
-      ],
-      popular: false,
-    },
-    {
-      name: 'Quarterly Beast',
-      price: 'Rs. 6,000',
-      period: '/ 3 months',
-      badge: 'MOST POPULAR',
-      badgeColor: 'bg-[#E51924] text-white border-red-500/50 shadow-lg shadow-red-500/20',
-      description: 'Save 20% — ideal 90-day transformation plan.',
-      features: [
-        'Everything in Monthly Starter',
-        '1-on-1 Trainer Assessment Session',
-        'Body Composition & Fat Check',
-        'Custom Nutrition Outline',
-        'Priority WhatsApp Support',
-      ],
-      popular: true,
-    },
-    {
-      name: 'Half-Yearly Elite',
-      price: 'Rs. 10,000',
-      period: '/ 6 months',
-      badge: 'SAVE 35%',
-      badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-      description: 'Serious results for dedicated fitness enthusiasts.',
-      features: [
-        'Everything in Quarterly Beast',
-        'Personalised Macro Diet Plan',
-        'Customised Strength Programme',
-        '2x Free Guest Passes / Month',
-        'Free Supplement Consultation',
-      ],
-      popular: false,
-    },
-    {
-      name: 'Yearly Champion',
-      price: 'Rs. 18,000',
-      period: '/ year',
-      badge: 'BEST VALUE',
-      badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-      description: 'Ultimate savings & year-round unlimited access.',
-      features: [
-        'Unlimited VIP Access Year-Round',
-        '4x Dedicated Personal Trainer Sessions',
-        'Free Armstrong Gym Shaker & T-Shirt',
-        'Priority Locker Allocation',
-        'Unlimited Guest Visits (1 / Mo)',
-      ],
-      popular: false,
-    },
-    {
-      name: 'Student Fitness Pass',
-      price: 'Rs. 1,800',
-      period: '/ month',
-      badge: 'STUDENT DISCOUNT',
-      badgeColor: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-      description: 'Discounted plan for students with valid Student ID.',
-      features: [
-        'Full Gym & Free Weights Access',
-        'Off-Peak Hours (11 AM – 5 PM)',
-        'Locker Room Access',
-        'Group Functional Training',
-      ],
-      popular: false,
-    },
-    {
-      name: 'VIP Personal Coaching',
-      price: 'Rs. 12,000',
-      period: '/ month',
-      badge: 'GUARANTEED RESULTS',
-      badgeColor: 'bg-[#E51924] text-white border-red-500/40',
-      description: '1-on-1 dedicated daily personal coach & custom diet.',
-      features: [
-        'Daily 1-on-1 Dedicated Trainer',
-        'Custom Meal Prep & Macro Tracking',
-        'Weekly Body Recomp Assessments',
-        '24/7 WhatsApp Coach Direct Line',
-        'Free All-Access Gym Membership',
-      ],
-      popular: false,
-    },
-  ];
+  // Plans are loaded dynamically from admin settings (see siteSettings.plansJson)
 
-  // Static display metadata for known trainers (bio, certifications, experience badges)
-  // Keys are lowercase trainer names for matching against live backend data
-  const trainerMeta: Record<string, {
-    role: string; specialty: string; experience: string;
-    certifications: string[]; shift: string; transformationsCount: string;
-    image: string; bio: string;
-  }> = {
-    quadir: {
-      role: 'Head Bodybuilding & Strength Coach',
-      specialty: 'Powerlifting, Heavy Barbell Hypertrophy & Contest Prep',
-      experience: '12+ Years Experience',
-      certifications: ['IFBB Certified Master Trainer', 'NSCA CSCS', 'Kinesiology Specialist'],
-      shift: 'Morning Shift: 6 AM - 12 PM',
-      transformationsCount: '180+ Clients Transformed',
-      image: 'https://images.unsplash.com/photo-1567013127542-490d757e51fc?auto=format&fit=crop&w=600&q=80',
-      bio: 'Master bodybuilding coach with over 12 years of experience. Specializes in progressive overload powerbuilding and heavy hypertrophy.',
-    },
-    gul: {
-      role: 'Lead Functional & HIIT Coach',
-      specialty: 'Weight Recomposing, Cardio & Functional HIIT',
-      experience: '8+ Years Experience',
-      certifications: ['CrossFit Level 2 Trainer', 'ACE Certified Personal Trainer', 'Kettlebell Pro'],
-      shift: 'Evening Shift: 4 PM - 10 PM',
-      transformationsCount: '140+ Clients Transformed',
-      image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=600&q=80',
-      bio: 'High-energy endurance specialist known for designing high-octane interval sessions that melt body fat while building athletic functional stamina.',
-    },
-    yasir: {
-      role: 'Senior Strength & Powerlifting Coach',
-      specialty: 'Heavy Barbell Lifting, Squat/Bench/Deadlift',
-      experience: '10+ Years Experience',
-      certifications: ['National Powerlifting Champion', 'ISSA Master Trainer', 'Injury Rehab Specialist'],
-      shift: 'Full Day Split: 7 AM - 1 PM & 5 PM - 9 PM',
-      transformationsCount: '210+ Lifters Coached',
-      image: 'https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?auto=format&fit=crop&w=600&q=80',
-      bio: 'State-level powerlifter focused on biomechanics, elite barbell technique, heavy lifting programming, and safely increasing 1-rep maximums.',
-    },
-    hamza: {
-      role: 'High-Performance Athletic & Nutrition Coach',
-      specialty: 'Fat Loss, Toning, Posture & Clinical Diet',
-      experience: '6+ Years Experience',
-      certifications: ['Certified Sports Nutritionist (ISSN)', 'Mobility & Conditioning Specialist'],
-      shift: 'Morning & Afternoon: 7 AM - 2 PM',
-      transformationsCount: '120+ Transformations',
-      image: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=600&q=80',
-      bio: 'Specialist in metabolic health, sustainable body composition, athletic conditioning workouts, and balanced nutrition planning.',
-    },
-  };
 
-  // Build the trainers list from live backend data (if loaded), merged with static meta.
-  // Live trainer fields (role, experience, clientsCount, shiftTiming, bio) take priority;
-  // static meta fills in for known coaches so they don't go blank if those fields were
-  // set before the new fields existed.
-  const trainers = (liveTrainers.length > 0 ? liveTrainers : Object.keys(trainerMeta).map((key) => ({
-    id: key, name: key.charAt(0).toUpperCase() + key.slice(1),
-    phone: '', email: '', specialty: '', salary: 0,
-    shift: 'Morning' as const, status: 'Active' as const, joiningDate: '',
-  }))).map((t) => {
-    const key = t.name.toLowerCase();
-    const meta = trainerMeta[key];
-    return {
-      id: t.id,
+  // Trainers are loaded live from the DB — admin manages them in the Trainers module.
+  // The Trainer DB table has role, experience, clientsCount, shiftTiming, bio, photoUrl
+  // columns that display directly here with no static fallback needed.
+  const trainers = liveTrainers
+    .filter((t) => t.status === 'Active')
+    .map((t) => ({
+      id:   t.id,
       name: t.name,
-      role: t.role || meta?.role || t.specialty || 'Fitness Coach',
-      specialty: t.specialty || meta?.specialty || '',
-      experience: t.experience || meta?.experience || '',
-      certifications: meta?.certifications ?? [],
-      shift: t.shiftTiming || meta?.shift || (t.shift ? `${t.shift} Shift` : ''),
-      transformationsCount: t.clientsCount || meta?.transformationsCount || '',
-      image: t.photoUrl || meta?.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.name)}&background=1a1a1a&color=E51924&size=300`,
-      bio: t.bio || meta?.bio || t.specialty || '',
-    };
-  });
+      role: t.role || t.specialty || 'Fitness Coach',
+      specialty:           t.specialty || '',
+      experience:          t.experience || '',
+      shift:               t.shiftTiming || (t.shift ? `${t.shift} Shift` : ''),
+      transformationsCount: t.clientsCount || '',
+      image: t.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.name)}&background=1a1a1a&color=E51924&size=300`,
+      bio:   t.bio || t.specialty || '',
+    }));
 
   // Transformations shown here come from real client data.
   // Add entries via the admin portal (Trainers → client results).
@@ -498,7 +425,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
 
           <div className="flex items-center gap-3">
             <a
-              href="https://www.instagram.com/p/CWTOqdbIXqD/"
+              href={siteSettings.gymInstagramUrl}
               target="_blank"
               rel="noreferrer"
               aria-label="Armstrong Gym Instagram"
@@ -510,7 +437,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
               </svg>
             </a>
             <a
-              href="https://www.facebook.com/p/ArmStrong-gym-100064082887275/"
+              href={siteSettings.gymFacebookUrl}
               target="_blank"
               rel="noreferrer"
               aria-label="Armstrong Gym Facebook"
@@ -571,7 +498,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
               </a>
 
               <a
-                href="https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9"
+                href={siteSettings.gymMapsUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="px-8 py-4 rounded-full glass-card hover:bg-white/10 text-white border border-white/20 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2"
@@ -584,19 +511,19 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
             {/* Live Stats Bar */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-white/10">
               <div>
-                <p className="stat-val text-2xl sm:text-4xl text-white">500+</p>
+                <p className="stat-val text-2xl sm:text-4xl text-white">{siteSettings.statMembers}</p>
                 <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-white/40">Active Members</p>
               </div>
               <div>
-                <p className="stat-val text-2xl sm:text-4xl text-[#E51924]">15+</p>
+                <p className="stat-val text-2xl sm:text-4xl text-[#E51924]">{siteSettings.statCoaches}</p>
                 <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-white/40">Coaches</p>
               </div>
               <div>
-                <p className="stat-val text-2xl sm:text-4xl text-white">10K</p>
+                <p className="stat-val text-2xl sm:text-4xl text-white">{siteSettings.statFloorSize}</p>
                 <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-white/40">Sq Ft Space</p>
               </div>
               <div>
-                <p className="stat-val text-2xl sm:text-4xl text-[#E51924]">98%</p>
+                <p className="stat-val text-2xl sm:text-4xl text-[#E51924]">{siteSettings.statSuccessRate}</p>
                 <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-white/40">Success Rate</p>
               </div>
             </div>
@@ -617,7 +544,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
                   <p className="text-sm font-black uppercase tracking-wider text-white">Armstrong Gym & Fitness — Karachi</p>
                   <p className="text-xs text-white/60 flex items-center gap-1.5 mt-0.5 font-mono">
                     <MapPin className="w-3.5 h-3.5 text-[#E51924]" />
-                    Rimjhim Tower, Safoor, Scheme 33, Karachi
+                    {siteSettings.gymAddress}
                   </p>
                 </div>
                 <a
@@ -953,7 +880,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
             </p>
             <h2 className="text-2xl sm:text-4xl font-black uppercase tracking-wide text-white">Location & Map Navigation</h2>
             <p className="text-xs text-white/50 uppercase tracking-wider font-bold">
-              Visit our state-of-the-art facility in Gulzar-e-Hijri, Karachi. Easy access from Scheme 33.
+              Visit us at {siteSettings.gymAddress}
             </p>
           </div>
 
@@ -986,7 +913,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
                     <Phone className="w-4 h-4 text-[#E51924] shrink-0 mt-0.5" />
                     <div>
                       <p className="font-bold text-white uppercase">Front Desk Phone</p>
-                      <p className="text-white/60 font-mono mt-0.5">0332 2464479</p>
+                      <p className="text-white/60 font-mono mt-0.5">{siteSettings.gymPhone}</p>
                     </div>
                   </div>
 
@@ -994,8 +921,8 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
                     <Clock className="w-4 h-4 text-[#E51924] shrink-0 mt-0.5" />
                     <div>
                       <p className="font-bold text-white uppercase">Facility Timings</p>
-                      <p className="text-white/60 font-mono mt-0.5">Mon - Sat: 5:00 AM – 11:00 PM</p>
-                      <p className="text-white/60 font-mono">Sunday: 6:00 AM – 8:00 PM</p>
+                      <p className="text-white/60 font-mono mt-0.5">{siteSettings.gymTimingsWeekday}</p>
+                      <p className="text-white/60 font-mono">{siteSettings.gymTimingsSunday}</p>
                     </div>
                   </div>
                 </div>
@@ -1003,7 +930,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
 
               <div className="pt-6 border-t border-white/10 space-y-3">
                 <a
-                  href="https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9"
+                  href={siteSettings.gymMapsUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="w-full py-4 rounded-full bg-[#E51924] hover:bg-red-600 text-white font-black text-xs uppercase tracking-widest text-center shadow-xl shadow-red-500/20 transition-all flex items-center justify-center gap-2 group"
@@ -1014,7 +941,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
                 </a>
 
                 <p className="text-[10px] text-center text-white/40 font-mono">
-                  Direct Link: https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9
+                  Direct Link: {siteSettings.gymMapsUrl}
                 </p>
               </div>
             </div>
@@ -1038,12 +965,12 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
                 <div>
                   <p className="text-xs font-black uppercase text-white">Armstrong Gym & Fitness</p>
                   <a
-                    href="https://maps.app.goo.gl/1gbbwvmXgQaLRVNM9"
+                    href={siteSettings.gymMapsUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="text-[10px] text-[#E51924] font-bold hover:underline flex items-center gap-1 mt-0.5"
                   >
-                    <span>maps.app.goo.gl/1gbbwvmXgQaLRVNM9</span>
+                    <span>{siteSettings.gymMapsUrl.replace("https://","")}</span>
                     <ExternalLink className="w-2.5 h-2.5" />
                   </a>
                 </div>
@@ -1155,11 +1082,11 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onGoToAdmin }) => {
           <Logo size="md" showText={true} />
         </div>
         <p className="max-w-md mx-auto text-white/50 leading-relaxed font-medium">
-          Armstrong Gym &amp; Fitness Club • Rimjhim Tower, Safoor, Gulzar-e-Hijri, Scheme 33, Karachi 75270.
+          Armstrong Gym &amp; Fitness Club • {siteSettings.gymAddress}.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-4">
-          <a href="tel:03322464479" className="text-white/60 hover:text-[#E51924] transition-colors font-mono">
-            0332 2464479
+          <a href={`tel:${siteSettings.gymPhone}`} className="text-white/60 hover:text-[#E51924] transition-colors font-mono">
+            {siteSettings.gymPhone}
           </a>
           <span className="text-white/20" aria-hidden="true">•</span>
           <a href="https://www.instagram.com/p/CWTOqdbIXqD/" target="_blank" rel="noreferrer"

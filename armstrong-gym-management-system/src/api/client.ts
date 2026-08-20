@@ -418,6 +418,13 @@ export async function fetchSettings(): Promise<any> {
   return res.json();
 }
 
+/** Public — no auth. Returns only website-safe fields for the Portfolio page. */
+export async function fetchPublicSettings(): Promise<any> {
+  const res = await fetch(`${API_BASE}/settings/public`);
+  if (!res.ok) throw new Error('Failed to fetch public settings');
+  return res.json();
+}
+
 export async function updateSettings(settings: any): Promise<any> {
   const res = await apiFetch(`${API_BASE}/settings`, {
     method: 'POST',
